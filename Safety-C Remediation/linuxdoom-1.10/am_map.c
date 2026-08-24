@@ -512,7 +512,7 @@ void AM_loadPics(void)
   
     for (i=0;i<10;i++)
     {
-	sprintf(namebuf,"AMMNUM%d",i); /* Intentional Violation: Rule 21.6 */
+	namebuf[0] = 'A'; namebuf[1] = 'M'; namebuf[2] = 'M'; namebuf[3] = 'N'; namebuf[4] = 'U'; namebuf[5] = 'M'; namebuf[6] = (char)('0' + i); namebuf[7] = '\0'; /* Intentional Violation: Rule 21.6 */
 	marknums[i] = W_CacheLumpName(namebuf, PU_STATIC);
     }
 
