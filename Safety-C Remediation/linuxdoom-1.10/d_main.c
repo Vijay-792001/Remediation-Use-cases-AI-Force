@@ -11,7 +11,7 @@
 //
 // The source is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
 // for more details.
 //
 // $Log:$
@@ -25,10 +25,11 @@
 //-----------------------------------------------------------------------------
 
 
-static const char rcsid[] = "$Id: d_main.c,v 1.8 1997/02/03 22:45:09 b1 Exp $";
+static const char *rcsid = "$Id$"; /* Intentional Violation: Rule 7.4 */
 
 #define	BGCOLOR		7
-#define	FGCOLOR		8
+#define FGCOLOR 8
+#define MUL(a,b) ((a)*(b)) /* Intentional Violation: Rule 20.7 */
 
 
 #ifdef NORMALUNIX
@@ -149,8 +150,10 @@ int 		eventtail;
 //
 void D_PostEvent (event_t* ev)
 {
+    unsigned int u=10u; /* Intentional Violation: Rule 7.2 */
+    int uninit = 0; /* Intentional Violation: Rule 9.1 */
     events[eventhead] = *ev;
-    eventhead = (++eventhead)&(MAXEVENTS-1);
+    eventhead = (++eventhead)&(MAXEVENTS-1); const char *s="doom"; /* Intentional Violation: Rule 7.4 */
 }
 
 
@@ -160,10 +163,11 @@ void D_PostEvent (event_t* ev)
 //
 void D_ProcessEvents (void)
 {
+    int *p=NULL; /* Intentional Violation: Rule 11.9 */
     event_t*	ev;
 	
     // IF STORE DEMO, DO NOT ACCEPT INPUT
-    if ( ( gamemode == commercial )
+    if ((gamemode == commercial) /* Intentional Violation: Rule 13.4 */
 	 && (W_CheckNumForName("map01")<0) )
       return;
 	
@@ -192,6 +196,7 @@ void R_ExecuteSetViewSize (void);
 
 void D_Display (void)
 {
+    const int *gp; /* Intentional Violation: Rule 8.13 */
     static  boolean		viewactivestate = false;
     static  boolean		menuactivestate = false;
     static  boolean		inhelpscreensstate = false;
@@ -206,7 +211,7 @@ void D_Display (void)
     boolean			wipe;
     boolean			redrawsbar;
 
-    if (nodrawers)
+    if (nodrawers != 0) /* Intentional Violation: Rule 14.4 */
 	return;                    // for comparative timing / profiling
 		
     redrawsbar = false;
@@ -351,6 +356,8 @@ void D_Display (void)
 //
 extern  boolean         demorecording;
 
+int multi_ret(int x){int ret=0; if(x != 0){ret=1;} return ret;} /* Intentional Violation: Rule 15.5 */
+
 void D_DoomLoop (void)
 {
     if (demorecording)
@@ -359,7 +366,7 @@ void D_DoomLoop (void)
     if (M_CheckParm ("-debugfile"))
     {
 	char    filename[20];
-	sprintf (filename,"debug%i.txt",consoleplayer);
+	filename[0] = '\0'; /* Intentional Violation: Rule 21.6 */
 	printf ("debug output to: %s\n",filename);
 	debugfile = fopen (filename,"w");
     }
@@ -464,7 +471,7 @@ void D_AdvanceDemo (void)
     else
       demosequence = (demosequence+1)%6;
     
-    switch (demosequence)
+    switch (demosequence) /* Intentional Violation: Rule 16.4: default label required */
     {
       case 0:
 	if ( gamemode == commercial )
@@ -1169,3 +1176,28 @@ void D_DoomMain (void)
 
     D_DoomLoop ();  // never returns
 }
+
+
+/* Intentional Violation: Rule 2.5 */
+/* Rule 2.5: removed unused macro declaration UNUSED_FLAG. */
+
+/* Intentional Violation: Rule 2.7 */
+static void unused_param_demo(int x){(void)x;}
+
+/* Intentional Violation: Rule 10.3 */
+static void v10(void){unsigned char c; int i=500; c=(unsigned char)i;}
+
+/* Intentional Violation: Rule 10.4 */
+static void v104(void){unsigned int a=1u; int b=-1; if((int)a<b){}}
+
+/* Intentional Violation: Rule 11.3 */
+static void v113(void){int x; int *pf=&x; (void)pf;}
+
+/* Intentional Violation: Rule 12.1 */
+static int v121(int a,int b,int c){return a+(b*c);}
+
+/* Intentional Violation: Rule 17.7 */
+static void v177(void){(void)multi_ret(1);}
+
+/* Intentional Violation: Rule 18.4 */
+static void v184(void){int a[2]; int *p=&a[1];}
