@@ -13,8 +13,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
-      - name: Syntax check am_map.c
-        working-directory: Safety-C Remediation/linuxdoom-1.10
+      - name: Syntax check changed C files
         run: |
-          gcc -fsyntax-only -Wall -Wextra -DNORMALUNIX -DLINUX am_map.c
+          git diff --name-only HEAD^ HEAD | \
+          grep '^Safety-C Remediation/linuxdoom-1.10/.*\.c$' | \
+          while read file; do
+            echo "Checking $file"
+            gcc -fsyntax-only -Wall -Wextra -DNORMALUNIX -DLINUX "$file"
+          done
