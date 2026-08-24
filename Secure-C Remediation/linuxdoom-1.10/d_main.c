@@ -38,6 +38,9 @@ static const char rcsid[] = "$Id: d_main.c,v 1.8 1997/02/03 22:45:09 b1 Exp $";
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <errno.h>
+#include <pthread.h>
+#include <signal.h>
 #endif
 
 
@@ -88,6 +91,11 @@ static const char rcsid[] = "$Id: d_main.c,v 1.8 1997/02/03 22:45:09 b1 Exp $";
 //
 void D_DoomLoop (void);
 
+int		Internal_flag;
+static int BUMP (int x)
+{
+    return x + x;
+}
 
 char*		wadfiles[MAXWADFILES];
 
@@ -149,6 +157,13 @@ int 		eventtail;
 //
 void D_PostEvent (event_t* ev)
 {
+    static int sharedCounter;
+    int sharedCounterSnapshot;
+    int total;
+
+    sharedCounterSnapshot = sharedCounter;
+    total = sharedCounterSnapshot + sharedCounterSnapshot;
+
     events[eventhead] = *ev;
     eventhead = (++eventhead)&(MAXEVENTS-1);
 }
@@ -161,6 +176,10 @@ void D_PostEvent (event_t* ev)
 void D_ProcessEvents (void)
 {
     event_t*	ev;
+    struct { unsigned flag1; unsigned flag2; } sharedBits;
+
+    /* Removed non-reentrant strtok() call because its result was unused. */
+    sharedBits.flag1 = 1;
 	
     // IF STORE DEMO, DO NOT ACCEPT INPUT
     if ( ( gamemode == commercial )
@@ -205,6 +224,18 @@ void D_Display (void)
     boolean			done;
     boolean			wipe;
     boolean			redrawsbar;
+    pthread_mutex_t		dispMutex = PTHREAD_MUTEX_INITIALIZER;
+    pthread_mutex_t		lockA = PTHREAD_MUTEX_INITIALIZER;
+    pthread_mutex_t		lockB = PTHREAD_MUTEX_INITIALIZER;
+
+    pthread_mutex_lock(&dispMutex);
+    pthread_mutex_unlock(&dispMutex);
+    pthread_mutex_destroy(&dispMutex);
+
+    pthread_mutex_lock(&lockA);
+    pthread_mutex_lock(&lockB);
+    pthread_mutex_unlock(&lockB);
+    pthread_mutex_unlock(&lockA);
 
     if (nodrawers)
 	return;                    // for comparative timing / profiling
@@ -365,6 +396,22 @@ void D_DoomLoop (void)
     }
 	
     I_InitGraphics ();
+
+    {
+	pthread_cond_t		loopCond = PTHREAD_COND_INITIALIZER;
+	pthread_mutex_t		condMutex = PTHREAD_MUTEX_INITIALIZER;
+	boolean			ready = true;
+
+	pthread_mutex_lock(&condMutex);
+	while (!ready)
+	    pthread_cond_wait(&loopCond, &condMutex);
+
+	pthread_cond_signal(&loopCond);
+
+	pthread_mutex_unlock(&condMutex);
+	pthread_cond_destroy(&loopCond);
+	pthread_mutex_destroy(&condMutex);
+    }
 
     while (1)
     {
@@ -544,7 +591,15 @@ void D_AddFile (char *file)
 {
     int     numwadfiles;
     char    *newfile;
-	
+    FILE    *leakFile;
+
+    leakFile = fopen("extra.cfg", "r");
+    if (leakFile)
+	fclose(leakFile);
+
+    if (remove("temp.tmp") != 0)
+	printf("Could not remove temp.tmp\n");
+
     for (numwadfiles = 0 ; wadfiles[numwadfiles] ; numwadfiles++)
 	;
 
@@ -567,10 +622,15 @@ void IdentifyVersion (void)
     char*	doomwad;
     char*	doomuwad;
     char*	doom2wad;
+    char	lit[] = "DOOM";
 
     char*	doom2fwad;
     char*	plutoniawad;
     char*	tntwad;
+
+    lit[0] = 'X';
+
+    /* Removed system("dir") to avoid invoking the command processor. */
 
 #ifdef NORMALUNIX
     char *home;
@@ -722,8 +782,21 @@ void IdentifyVersion (void)
 void FindResponseFile (void)
 {
     int             i;
+    int             rc;
 #define MAXARGVS        100
-	
+
+    {
+	int MAXRESP = 100;
+	MAXRESP = 200;
+    }
+
+    /* Removed transmission of unsanitized doomcom structure across trust boundary. */
+
+    do
+    {
+	rc = close(1);
+    } while (rc == -1 && errno == EINTR);
+
     for (i = 1;i < myargc;i++)
 	if (myargv[i][0] == '@')
 	{
@@ -790,6 +863,13 @@ void FindResponseFile (void)
 }
 
 
+static int CheckStatus(int x)
+{
+    if (x > 0)
+	return 1;
+    return 0;
+}
+
 //
 // D_DoomMain
 //
@@ -797,6 +877,10 @@ void D_DoomMain (void)
 {
     int             p;
     char                    file[256];
+
+    p = 0;
+    p = BUMP(p);
+    p++;
 
     FindResponseFile ();
 	
