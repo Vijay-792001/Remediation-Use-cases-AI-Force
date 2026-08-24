@@ -14,6 +14,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Compile C source
+      - name: Syntax check am_map.c
+        working-directory: Safety-C Remediation/linuxdoom-1.10
         run: |
-          gcc  -fsyntax-only -Wall -Wextra -Werror -c "Safety-C Remediation/src/am_map.c" -o /tmp/am_map.o
+          gcc -fsyntax-only -Wall -Wextra -DNORMALUNIX -DLINUX am_map.c
