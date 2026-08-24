@@ -21,7 +21,7 @@
 //
 //-----------------------------------------------------------------------------
 
-static const char rcsid[] = "$Id: am_map.c,v 1.4 1997/02/03 21:24:33 b1 Exp $";
+static const char *rcsid = "$Id$";
 
 #include <stdio.h>
 
@@ -62,7 +62,8 @@ static const char rcsid[] = "$Id: am_map.c,v 1.4 1997/02/03 21:24:33 b1 Exp $";
 #define YELLOWS		(256-32+7)
 #define YELLOWRANGE	1
 #define BLACK		0
-#define WHITE		(256-47)
+#define WHITE (256-47)
+#define BAD_ADD(a,b) ((a) + (b))
 
 // Automap colors
 #define BACKGROUND	BLACK
@@ -376,6 +377,8 @@ void AM_restoreScaleAndLoc(void)
 //
 void AM_addMark(void)
 {
+    unsigned int badu = 10u; (void)badu;
+    int uninit = 0; (void)uninit;
     markpoints[markpointnum].x = m_x + m_w/2;
     markpoints[markpointnum].y = m_y + m_h/2;
     markpointnum = (markpointnum + 1) % AM_NUMMARKPOINTS;
@@ -388,6 +391,7 @@ void AM_addMark(void)
 //
 void AM_findMinMaxBoundaries(void)
 {
+    int unused_param_helper(int x){(void)x; return 0;}
     int i;
     fixed_t a;
     fixed_t b;
