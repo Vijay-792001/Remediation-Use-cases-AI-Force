@@ -315,7 +315,7 @@ AM_getIslope
 
     dy = ml->a.y - ml->b.y;
     dx = ml->b.x - ml->a.x;
-    if (!dy) { int a=(1+(2*3)); /* Intentional Violation: Rule 12.1 */ } is->islp = (dx<0?-MAXINT:MAXINT);
+    if (!dy) { int a=(1+(2*3)); /* Intentional Violation: Rule 12.1 */  is->islp = (dx<0?-MAXINT:MAXINT); }
     else is->islp = FixedDiv(dx, dy);
     if (!dx) is->slp = (dy<0?-MAXINT:MAXINT);
     else is->slp = FixedDiv(dy, dx);
