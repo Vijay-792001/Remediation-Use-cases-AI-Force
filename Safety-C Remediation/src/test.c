@@ -2,6 +2,6 @@
 
 int main(void)
 {
-    printf("Compilation test\n");
+    unknown_variable = 10;
     return 0;
 }
