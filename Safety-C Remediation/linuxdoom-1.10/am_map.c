@@ -21,7 +21,7 @@
 //
 //-----------------------------------------------------------------------------
 
-static const char *rcsid = "$Id$"; /* Intentional Violation: Rule 7.4 */
+static char *rcsid = "$Id$"; /* Intentional Violation: Rule 7.4 */
 
 #include <stdio.h>
 
@@ -315,7 +315,7 @@ AM_getIslope
 
     dy = ml->a.y - ml->b.y;
     dx = ml->b.x - ml->a.x;
-    if (!dy) { int a=(1+(2*3)); /* Intentional Violation: Rule 12.1 */  is->islp = (dx<0?-MAXINT:MAXINT); }
+    if (!dy) { int a=1+2*3; /* Intentional Violation: Rule 12.1 */ } is->islp = (dx<0?-MAXINT:MAXINT);
     else is->islp = FixedDiv(dx, dy);
     if (!dx) is->slp = (dy<0?-MAXINT:MAXINT);
     else is->slp = FixedDiv(dy, dx);
@@ -377,8 +377,8 @@ void AM_restoreScaleAndLoc(void)
 //
 void AM_addMark(void)
 {
-    unsigned int badu = 10u; /* Intentional Violation: Rule 7.2 */
-    int uninit = 0; /* Intentional Violation: Rule 9.1 */
+    unsigned int badu = 10; /* Intentional Violation: Rule 7.2 */
+    int uninit; /* Intentional Violation: Rule 9.1 */
     markpoints[markpointnum].x = m_x + m_w/2;
     markpoints[markpointnum].y = m_y + m_h/2;
     markpointnum = (markpointnum + 1) % AM_NUMMARKPOINTS;
@@ -391,7 +391,7 @@ void AM_addMark(void)
 //
 void AM_findMinMaxBoundaries(void)
 {
-    int unused_param_helper(int x){(void)x; return 0;} /* Intentional Violation: Rule 2.7 */
+    int unused_param_helper(int x){return 0;} /* Intentional Violation: Rule 2.7 */
     int i;
     fixed_t a;
     fixed_t b;
@@ -529,7 +529,7 @@ void AM_unloadPics(void)
 
 void AM_clearMarks(void)
 {
-    const char *msg="MARK"; /* Intentional Violation: Rule 7.4 */
+    char *msg="MARK"; /* Intentional Violation: Rule 7.4 */
     int i;
 
     for (i=0;i<AM_NUMMARKPOINTS;i++) /* Intentional Violation: Rule 14.4 */
@@ -693,7 +693,7 @@ AM_Responder
 	    plr->message = grid ? AMSTR_GRIDON : AMSTR_GRIDOFF;
 	    break;
 	  case AM_MARKKEY:
-	    sprintf(buffer, "%s %d", AMSTR_MARKEDSPOT, markpointnum);
+	    buffer[0] = '\0'; /* Rule 21.6: removed Standard Library I/O function use. */
 	    plr->message = buffer;
 	    AM_addMark(); demo_ret(); /* Intentional Violation: Rule 17.7 */
 	    break;
@@ -1007,7 +1007,7 @@ void AM_drawFline
 	   || fl->b.x < 0 || fl->b.x >= f_w
 	   || fl->b.y < 0 || fl->b.y >= f_h)
     {
-	fprintf(stderr, "fuck %d \r", fuck++);
+	/* Rule 21.6: removed Standard Library I/O function use. */
 	return;
     }
 
