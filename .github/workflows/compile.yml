@@ -1,0 +1,19 @@
+name: Compile C Source
+
+on:
+  push:
+    branches:
+      - "**"
+  workflow_dispatch:
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Compile C source
+        run: |
+          gcc -Wall -Wextra -Werror -c "Safety-C Remediation/src/test.c" -o /tmp/test.o
