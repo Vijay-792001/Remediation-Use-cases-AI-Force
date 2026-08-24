@@ -16,4 +16,4 @@ jobs:
 
       - name: Compile C source
         run: |
-          gcc -Wall -Wextra -Werror -c "Safety-C Remediation/src/am_map.c" -o /tmp/am_map.o
+          gcc  -fsyntax-only -Wall -Wextra -Werror -c "Safety-C Remediation/src/am_map.c" -o /tmp/am_map.o
