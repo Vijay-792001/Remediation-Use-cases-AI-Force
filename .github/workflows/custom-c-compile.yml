@@ -1,0 +1,26 @@
+name: Custom-C Compile
+
+on:
+  push:
+    branches:
+      - "**"
+  workflow_dispatch:
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Syntax check changed C files
+        run: |
+          git diff --name-only HEAD^ HEAD | \
+          grep '^Custom-C Remediation/linuxdoom-1.10/.*\.c$' | \
+          while read file; do
+            echo "Checking $file"
+            gcc -fsyntax-only -Wall -Wextra -DNORMALUNIX -DLINUX "$file"
+          done
