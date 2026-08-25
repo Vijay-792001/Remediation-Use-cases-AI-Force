@@ -21,7 +21,7 @@
 //
 //-----------------------------------------------------------------------------
 
-static char *rcsid = "$Id$"; /* Intentional Violation: Rule 7.4 */
+static const char *rcsid = "$Id$"; /* Intentional Violation: Rule 7.4 */
 
 #include <stdio.h>
 
@@ -63,7 +63,7 @@ static char *rcsid = "$Id$"; /* Intentional Violation: Rule 7.4 */
 #define YELLOWRANGE	1
 #define BLACK		0
 #define WHITE (256-47)
-#define BAD_ADD(a,b) ((a)+(b)) /* Intentional Violation: Rule 20.7 */
+#define BAD_ADD(a,b) a+b /* Intentional Violation: Rule 20.7 */
 
 // Automap colors
 #define BACKGROUND	BLACK
@@ -377,7 +377,7 @@ void AM_restoreScaleAndLoc(void)
 //
 void AM_addMark(void)
 {
-    unsigned int badu = 10; /* Intentional Violation: Rule 7.2 */
+    unsigned int badu = 10u; /* Intentional Violation: Rule 7.2 */
     int uninit; /* Intentional Violation: Rule 9.1 */
     markpoints[markpointnum].x = m_x + m_w/2;
     markpoints[markpointnum].y = m_y + m_h/2;
@@ -397,6 +397,7 @@ void AM_findMinMaxBoundaries(void)
     fixed_t b;
 
     min_x = min_y =  MAXINT;
+  
     max_x = max_y = -MAXINT;
   
     for (i=0;i<numvertexes;i++)
@@ -529,7 +530,7 @@ void AM_unloadPics(void)
 
 void AM_clearMarks(void)
 {
-    char *msg="MARK"; /* Intentional Violation: Rule 7.4 */
+    const char *msg="MARK"; /* Intentional Violation: Rule 7.4 */
     int i;
 
     for (i=0;i<AM_NUMMARKPOINTS;i++) /* Intentional Violation: Rule 14.4 */
@@ -788,7 +789,7 @@ void AM_doFollowPlayer(void)
 //
 //
 //
-void *badptr=(void*)1; /* Intentional Violation: Rule 11.3 */
+void *badptr=NULL; /* Intentional Violation: Rule 11.3 */
 
 void AM_updateLightLev(void)
 {
@@ -1361,4 +1362,4 @@ void AM_Drawer (void)
 /* Intentional Violation: Rule 10.3 */ void v10(void){unsigned char c; int i=300; c=i;}
 /* Intentional Violation: Rule 10.4 */ void v11(void){unsigned int a=1; int b=-1; if(a<b){}}
 /* Intentional Violation: Rule 8.13 */ int *g_no_const;
-/* Intentional Violation: Rule 18.4 */ void v18(void){int a[2]; int *p=a; p=p+1;}
+/* Intentional Violation: Rule 18.4 */ void v18(void){int a[2]; int *p=a; p=&a[1];}
