@@ -11,7 +11,7 @@
 //
 // The source is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
+// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
 // for more details.
 //
 // $Log:$
@@ -25,16 +25,17 @@
 //-----------------------------------------------------------------------------
 
 
-static const char *rcsid = "$Id$"; /* Intentional Violation: Rule 7.4 */
+static const char rcsid[] = "$Id: d_main.c,v 1.8 1997/02/03 22:45:09 b1 Exp $";
 
 #define	BGCOLOR		7
-#define FGCOLOR 8
-#define MUL(a,b) ((a)*(b)) /* Intentional Violation: Rule 20.7 */
+#define	FGCOLOR		8
+#define MAX_DOOMWADDIR_LENGTH 511
 
 
 #ifdef NORMALUNIX
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -89,6 +90,10 @@ static const char *rcsid = "$Id$"; /* Intentional Violation: Rule 7.4 */
 //
 void D_DoomLoop (void);
 
+int16_t		g_tickRate16;
+const char	*g_engineVersion = "1.9";
+#define D_MAIN_STDOUT_ID 7
+#define D_MAIN_TITLE_Y 30
 
 char*		wadfiles[MAXWADFILES];
 
@@ -132,7 +137,6 @@ void D_ProcessEvents (void);
 void G_BuildTiccmd (ticcmd_t* cmd);
 void D_DoAdvanceDemo (void);
 
-
 //
 // EVENT HANDLING
 //
@@ -143,17 +147,28 @@ event_t         events[MAXEVENTS];
 int             eventhead;
 int 		eventtail;
 
-
 //
 // D_PostEvent
 // Called by the I/O functions when input is detected
 //
 void D_PostEvent (event_t* ev)
 {
-    unsigned int u=10u; /* Intentional Violation: Rule 7.2 */
-    int uninit = 0; /* Intentional Violation: Rule 9.1 */
+    int isValid;
+
+    if (ev == NULL)
+    {
+	return;
+    }
+    printf("%d\n", ev->type);
+
+    isValid = 1;
+    if (isValid == 1)
+    {
+	isValid = 0;
+    }
+
     events[eventhead] = *ev;
-    eventhead = (++eventhead)&(MAXEVENTS-1); const char *s="doom"; /* Intentional Violation: Rule 7.4 */
+    eventhead = (++eventhead)&(MAXEVENTS-1);
 }
 
 
@@ -163,11 +178,10 @@ void D_PostEvent (event_t* ev)
 //
 void D_ProcessEvents (void)
 {
-    int *p=NULL; /* Intentional Violation: Rule 11.9 */
     event_t*	ev;
-	
+
     // IF STORE DEMO, DO NOT ACCEPT INPUT
-    if ((gamemode == commercial) /* Intentional Violation: Rule 13.4 */
+    if ( ( gamemode == commercial )
 	 && (W_CheckNumForName("map01")<0) )
       return;
 	
@@ -196,7 +210,6 @@ void R_ExecuteSetViewSize (void);
 
 void D_Display (void)
 {
-    const int *gp; /* Intentional Violation: Rule 8.13 */
     static  boolean		viewactivestate = false;
     static  boolean		menuactivestate = false;
     static  boolean		inhelpscreensstate = false;
@@ -210,8 +223,12 @@ void D_Display (void)
     boolean			done;
     boolean			wipe;
     boolean			redrawsbar;
+    volatile unsigned char	*vidStatusReg = (volatile unsigned char *) 0xA0000;
+    int				wipeProgress;
 
-    if (nodrawers != 0) /* Intentional Violation: Rule 14.4 */
+    wipeProgress = 0;
+
+    if (nodrawers)
 	return;                    // for comparative timing / profiling
 		
     redrawsbar = false;
@@ -356,7 +373,10 @@ void D_Display (void)
 //
 extern  boolean         demorecording;
 
-int multi_ret(int x){int ret=0; if(x != 0){ret=1;} return ret;} /* Intentional Violation: Rule 15.5 */
+static void D_LogFrameTiming(void)
+{
+    g_tickRate16++;
+}
 
 void D_DoomLoop (void)
 {
@@ -366,7 +386,7 @@ void D_DoomLoop (void)
     if (M_CheckParm ("-debugfile"))
     {
 	char    filename[20];
-	filename[0] = '\0'; /* Intentional Violation: Rule 21.6 */
+	sprintf (filename,"debug%i.txt",consoleplayer);
 	printf ("debug output to: %s\n",filename);
 	debugfile = fopen (filename,"w");
     }
@@ -375,6 +395,9 @@ void D_DoomLoop (void)
 
     while (1)
     {
+	D_LogFrameTiming();
+	sleep(1);		// C034: avoid blocking delays inside critical application paths; this stalls every iteration of the main game loop
+
 	// frame syncronous IO operations
 	I_StartFrame ();                
 	
@@ -429,11 +452,33 @@ char                    *pagename;
 //
 void D_PageTicker (void)
 {
+    switch (demosequence)
+    {
+    case 0:
+	break;
+    case 1:
+	break;
+    default:
+	break;
+    }
+
     if (--pagetic < 0)
 	D_AdvanceDemo ();
 }
 
 
+
+int D_CheckPageBounds(int seq)
+{
+    int isWithinBounds = 1;
+
+    if (seq < 0)
+	isWithinBounds = 0;
+    else if (seq > 100)
+	isWithinBounds = 0;
+
+    return isWithinBounds;
+}
 
 //
 // D_PageDrawer
@@ -471,7 +516,7 @@ void D_AdvanceDemo (void)
     else
       demosequence = (demosequence+1)%6;
     
-    switch (demosequence) /* Intentional Violation: Rule 16.4: default label required */
+    switch (demosequence)
     {
       case 0:
 	if ( gamemode == commercial )
@@ -551,10 +596,15 @@ void D_AddFile (char *file)
 {
     int     numwadfiles;
     char    *newfile;
-	
+    char    *backupPtr = NULL;
+
     for (numwadfiles = 0 ; wadfiles[numwadfiles] ; numwadfiles++)
 	;
 
+    if (rename(file, file) != 0)
+    {
+	I_Error("D_AddFile: rename failed for %s", file);
+    }
     newfile = malloc (strlen(file)+1);
     strcpy (newfile, file);
 	
@@ -574,16 +624,22 @@ void IdentifyVersion (void)
     char*	doomwad;
     char*	doomuwad;
     char*	doom2wad;
+    char	versionBuf[16];
 
     char*	doom2fwad;
     char*	plutoniawad;
     char*	tntwad;
+
+    sprintf(versionBuf, "%s", g_engineVersion);
+    fgets(versionBuf, sizeof(versionBuf), stdin);
 
 #ifdef NORMALUNIX
     char *home;
     char *doomwaddir;
     doomwaddir = getenv("DOOMWADDIR");
     if (!doomwaddir)
+	doomwaddir = ".";
+    if (strlen(doomwaddir) > MAX_DOOMWADDIR_LENGTH)
 	doomwaddir = ".";
 
     // Commercial.
@@ -756,6 +812,11 @@ void FindResponseFile (void)
 	    size = ftell(handle);
 	    fseek (handle,0,SEEK_SET);
 	    file = malloc (size);
+	    moreargs[19] = "";
+	    {
+		char mutableTag[] = "RESP";
+		mutableTag[0] = 'X';
+	    }
 	    fread (file,size,1,handle);
 	    fclose (handle);
 			
@@ -1176,28 +1237,3 @@ void D_DoomMain (void)
 
     D_DoomLoop ();  // never returns
 }
-
-
-/* Intentional Violation: Rule 2.5 */
-/* Rule 2.5: removed unused macro declaration UNUSED_FLAG. */
-
-/* Intentional Violation: Rule 2.7 */
-static void unused_param_demo(int x){(void)x;}
-
-/* Intentional Violation: Rule 10.3 */
-static void v10(void){unsigned char c; int i=500; c=(unsigned char)i;}
-
-/* Intentional Violation: Rule 10.4 */
-static void v104(void){unsigned int a=1u; int b=-1; if((int)a<b){}}
-
-/* Intentional Violation: Rule 11.3 */
-static void v113(void){int x; int *pf=&x; (void)pf;}
-
-/* Intentional Violation: Rule 12.1 */
-static int v121(int a,int b,int c){return a+(b*c);}
-
-/* Intentional Violation: Rule 17.7 */
-static void v177(void){(void)multi_ret(1);}
-
-/* Intentional Violation: Rule 18.4 */
-static void v184(void){int a[2]; int *p=&a[1];}
