@@ -21,7 +21,7 @@
 //
 //-----------------------------------------------------------------------------
 
-static const char *rcsid = "$Id$";
+// static const char *rcsid = "$Id$";
 
 #include <stdio.h>
 
@@ -391,7 +391,7 @@ void AM_addMark(void)
 //
 void AM_findMinMaxBoundaries(void)
 {
-    int unused_param_helper(int x){(void)x; return 0;}
+    (void)0;
     int i;
     fixed_t a;
     fixed_t b;
