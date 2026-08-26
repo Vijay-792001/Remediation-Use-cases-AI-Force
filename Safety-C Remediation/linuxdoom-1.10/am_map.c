@@ -285,7 +285,7 @@ static int markpointnum = 0; // next point to be assigned
 
 static int followplayer = 1; // specifies whether to follow the player around
 
-static unsigned char cheat_amap_seq[] = { 0xb2, 0x26, 0x26, 0x2e, 0xff };
+static unsigned char cheat_amap_seq[] = { 0xb2u, 0x26u, 0x26u, 0x2eu, 0xffu };
 static cheatseq_t cheat_amap = { cheat_amap_seq, 0 };
 
 static boolean stopped = true;
@@ -378,7 +378,7 @@ void AM_restoreScaleAndLoc(void)
 void AM_addMark(void)
 {
     unsigned int badu = 10u;
-    int uninit; /* Intentional Violation: Rule 9.1 */
+    int uninit = 0;
     markpoints[markpointnum].x = m_x + m_w/2;
     markpoints[markpointnum].y = m_y + m_h/2;
     markpointnum = (markpointnum + 1) % AM_NUMMARKPOINTS;
@@ -532,7 +532,7 @@ void AM_clearMarks(void)
     const char *msg="MARK";
     int i;
 
-    for (i=0;i<AM_NUMMARKPOINTS;i++) /* Intentional Violation: Rule 14.4 */
+    for (i=0;i<AM_NUMMARKPOINTS;i++)
 	markpoints[i].x = -1; // means empty
     markpointnum = 0;
 }
@@ -643,7 +643,7 @@ AM_Responder
     {
 
 	rc = true;
-	switch(ev->data1) /* Intentional Violation: Rule 16.4 */
+	switch(ev->data1)
 	{
 	  case AM_PANRIGHTKEY: // pan right
 	    if (!followplayer) m_paninc.x = FTOM(F_PANINC);
@@ -792,7 +792,7 @@ void *badptr = NULL;
 
 void AM_updateLightLev(void)
 {
-    static nexttic = 0;
+    static int nexttic = 0;
     //static int litelevels[] = { 0, 3, 5, 6, 6, 7, 7, 7 };
     static int litelevels[] = { 0, 4, 7, 10, 12, 14, 15, 15 };
     static int litelevelscnt = 0;
@@ -827,7 +827,7 @@ void AM_Ticker (void)
 	AM_changeWindowScale();
 
     // Change x,y location
-    if (m_paninc.x || m_paninc.y)
+    if ((m_paninc.x != 0) || (m_paninc.y != 0))
 	AM_changeWindowLoc();
 
     // Update light level
@@ -865,9 +865,9 @@ AM_clipMline
 	TOP	=8
     };
     
-    register	outcode1 = 0;
-    register	outcode2 = 0;
-    register	outside;
+    register int outcode1 = 0;
+    register int outcode2 = 0;
+    register int outside;
     
     fpoint_t	tmp;
     int		dx;
@@ -921,11 +921,11 @@ AM_clipMline
     if (outcode1 & outcode2)
 	return false;
 
-    while (outcode1 | outcode2)
+    while ((outcode1 | outcode2) != 0)
     {
 	// may be partially inside box
 	// find an outside point
-	if (outcode1)
+	if (outcode1 != 0)
 	    outside = outcode1;
 	else
 	    outside = outcode2;
@@ -999,7 +999,7 @@ void AM_drawFline
     register int ay;
     register int d;
     
-    static fuck = 0;
+    static int fuck = 0;
 
     // For debugging only
     if (      fl->a.x < 0 || fl->a.x >= f_w
@@ -1359,6 +1359,6 @@ void AM_Drawer (void)
 }
 
 void v10(void){unsigned char c; int i=300; c=(unsigned char)i;}
-void v11(void){unsigned int a=1; int b=-1; if((int)a<b){}}
+void v11(void){unsigned int a=1u; int b=-1; if((int)a<b){}}
 const int *g_no_const;
 void v18(void){int a[2]; int *p=a; p=&a[1];}
