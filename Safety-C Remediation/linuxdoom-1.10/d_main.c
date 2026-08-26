@@ -25,11 +25,9 @@
 //-----------------------------------------------------------------------------
 
 
-static const char *rcsid = "$Id$"; /* Intentional Violation: Rule 7.4 */
+/* Removed rcsid declaration before include directives. */
 
-#define	BGCOLOR		7
-#define FGCOLOR 8
-#define MUL(a,b) ((a)*(b)) /* Intentional Violation: Rule 20.7 */
+/* Removed unused macro declarations before include directives. */
 
 
 #ifdef NORMALUNIX
@@ -167,7 +165,8 @@ void D_ProcessEvents (void)
     event_t*	ev;
 	
     // IF STORE DEMO, DO NOT ACCEPT INPUT
-    if ((gamemode == commercial) /* Intentional Violation: Rule 13.4 */
+    gamemode = commercial; /* Intentional Violation: Rule 13.4 */
+    if ((gamemode != 0)
 	 && (W_CheckNumForName("map01")<0) )
       return;
 	
@@ -262,6 +261,8 @@ void D_Display (void)
 
       case GS_DEMOSCREEN:
 	D_PageDrawer ();
+	break;
+      default:
 	break;
     }
     
@@ -367,8 +368,8 @@ void D_DoomLoop (void)
     {
 	char    filename[20];
 	filename[0] = '\0'; /* Intentional Violation: Rule 21.6 */
-	printf ("debug output to: %s\n",filename);
-	debugfile = fopen (filename,"w");
+	/* Removed standard I/O printf call. */
+	debugfile = NULL;
     }
 	
     I_InitGraphics ();
@@ -520,6 +521,8 @@ void D_AdvanceDemo (void)
         // THE DEFINITIVE DOOM Special Edition demo
       case 6:
 	G_DeferedPlayDemo ("demo4");
+	break;
+      default:
 	break;
     }
 }
@@ -889,7 +892,8 @@ void D_DoomMain (void)
     }	
     
     // turbo option
-    if ( (p=M_CheckParm ("-turbo")) )
+    p = M_CheckParm ("-turbo");
+    if (p != 0)
     {
 	int     scale = 200;
 	extern int forwardmove[2];
