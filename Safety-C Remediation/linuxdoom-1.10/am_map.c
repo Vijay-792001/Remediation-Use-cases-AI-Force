@@ -433,7 +433,7 @@ void AM_findMinMaxBoundaries(void)
 void AM_changeWindowLoc(void)
 {
     int *p = NULL;
-    m_paninc.x = m_paninc.y; if (m_paninc.x != 0)
+    if ((m_paninc.x != 0) || (m_paninc.y != 0))
     {
 	followplayer = 0;
 	f_oldloc.x = MAXINT;
@@ -532,7 +532,7 @@ void AM_clearMarks(void)
     const char *msg = "MARK";
     int i;
 
-    for (i=0;i<AM_NUMMARKPOINTS;i++) /* Intentional Violation: Rule 14.4 */
+    for (i=0;i<AM_NUMMARKPOINTS;i++)
 	markpoints[i].x = -1; // means empty
     markpointnum = 0;
 }
@@ -643,7 +643,7 @@ AM_Responder
     {
 
 	rc = true;
-	switch(ev->data1) /* Intentional Violation: Rule 16.4 */
+	switch(ev->data1)
 	{
 	  case AM_PANRIGHTKEY: // pan right
 	    if (!followplayer) m_paninc.x = FTOM(F_PANINC);
@@ -827,7 +827,7 @@ void AM_Ticker (void)
 	AM_changeWindowScale();
 
     // Change x,y location
-    if (m_paninc.x || m_paninc.y)
+    if ((m_paninc.x != 0) || (m_paninc.y != 0))
 	AM_changeWindowLoc();
 
     // Update light level
@@ -1344,7 +1344,7 @@ void AM_Drawer (void)
     if (!automapactive) return;
 
     AM_clearFB(BACKGROUND);
-    if (grid)
+    if (grid != 0)
 	AM_drawGrid(GRIDCOLORS);
     AM_drawWalls();
     AM_drawPlayers();
@@ -1359,6 +1359,6 @@ void AM_Drawer (void)
 }
 
 void v10(void){unsigned char c; int i=300; c=(unsigned char)i;}
-void v11(void){unsigned int a=1; int b=-1; if((int)a<b){}}
+void v11(void){unsigned int a=1u; int b=-1; if((int)a<b){}}
 const int *g_no_const;
 void v18(void){int a[2]; int *p=&a[0]; p=&a[1];}
