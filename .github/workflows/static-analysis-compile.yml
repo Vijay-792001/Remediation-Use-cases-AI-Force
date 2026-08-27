@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - "**"
+    paths:
+      - "Static-Analysis Remediation/linuxdoom-1.10/**"
   workflow_dispatch:
 
 jobs:
