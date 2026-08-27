@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - "**"
+    paths:
+      - "Custom-C Remediation/linuxdoom-1.10/**"
   workflow_dispatch:
 
 jobs:
