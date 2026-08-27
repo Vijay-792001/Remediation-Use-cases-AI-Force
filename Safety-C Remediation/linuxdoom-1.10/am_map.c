@@ -397,7 +397,6 @@ void AM_findMinMaxBoundaries(void)
     fixed_t b;
 
     min_x = min_y =  MAXINT;
-    max_x = max_y = -MAXINT;
   
     for (i=0;i<numvertexes;i++)
     {
