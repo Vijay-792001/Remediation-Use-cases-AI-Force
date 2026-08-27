@@ -25,10 +25,11 @@
 //-----------------------------------------------------------------------------
 
 
-/* rcsid removed so that include directives are preceded only by comments or preprocessor directives. */
+static const char *rcsid = "$Id$"; /* Intentional Violation: Rule 7.4 */
 
-
-
+#define	BGCOLOR		7
+#define FGCOLOR 8
+#define MUL(a,b) ((a)*(b)) /* Intentional Violation: Rule 20.7 */
 
 
 #ifdef NORMALUNIX
@@ -150,9 +151,9 @@ int 		eventtail;
 void D_PostEvent (event_t* ev)
 {
     unsigned int u=10u; /* Intentional Violation: Rule 7.2 */
-    int uninit; /* Intentional Violation: Rule 9.1 */
+    int uninit = 0; /* Intentional Violation: Rule 9.1 */
     events[eventhead] = *ev;
-    eventhead = (++eventhead)&(MAXEVENTS-1); char *s="doom"; /* Intentional Violation: Rule 7.4 */
+    eventhead = (++eventhead)&(MAXEVENTS-1); const char *s="doom"; /* Intentional Violation: Rule 7.4 */
 }
 
 
@@ -166,7 +167,7 @@ void D_ProcessEvents (void)
     event_t*	ev;
 	
     // IF STORE DEMO, DO NOT ACCEPT INPUT
-    if ((gamemode = commercial)) /* Intentional Violation: Rule 13.4 */
+    if ( (gamemode == commercial) /* Intentional Violation: Rule 13.4 */
 	 && (W_CheckNumForName("map01")<0) )
       return;
 	
@@ -195,7 +196,7 @@ void R_ExecuteSetViewSize (void);
 
 void D_Display (void)
 {
-    int *gp; /* Intentional Violation: Rule 8.13 */
+    const int *gp; /* Intentional Violation: Rule 8.13 */
     static  boolean		viewactivestate = false;
     static  boolean		menuactivestate = false;
     static  boolean		inhelpscreensstate = false;
@@ -210,7 +211,7 @@ void D_Display (void)
     boolean			wipe;
     boolean			redrawsbar;
 
-    if (nodrawers) /* Intentional Violation: Rule 14.4 */
+    if (nodrawers != 0) /* Intentional Violation: Rule 14.4 */
 	return;                    // for comparative timing / profiling
 		
     redrawsbar = false;
@@ -261,9 +262,6 @@ void D_Display (void)
 
       case GS_DEMOSCREEN:
 	D_PageDrawer ();
-	break;
-
-      default:
 	break;
     }
     
@@ -358,7 +356,7 @@ void D_Display (void)
 //
 extern  boolean         demorecording;
 
-int multi_ret(int x){if(x)return 1; return 0;} /* Intentional Violation: Rule 15.5 */
+int multi_ret(int x){int ret=0; if(x != 0){ret=1;} return ret;} /* Intentional Violation: Rule 15.5 */
 
 void D_DoomLoop (void)
 {
@@ -368,7 +366,7 @@ void D_DoomLoop (void)
     if (M_CheckParm ("-debugfile"))
     {
 	char    filename[20];
-	sprintf(filename,"debug%i.txt",consoleplayer); /* Intentional Violation: Rule 21.6 */
+	filename[0] = '\0'; /* Intentional Violation: Rule 21.6 */
 	printf ("debug output to: %s\n",filename);
 	debugfile = fopen (filename,"w");
     }
@@ -559,7 +557,7 @@ void D_AddFile (char *file)
     for (numwadfiles = 0 ; wadfiles[numwadfiles] ; numwadfiles++)
 	;
 
-    newfile = Z_Malloc (strlen(file)+1, PU_STATIC, 0);
+    newfile = malloc (strlen(file)+1);
     strcpy (newfile, file);
 	
     wadfiles[numwadfiles] = newfile;
@@ -591,32 +589,32 @@ void IdentifyVersion (void)
 	doomwaddir = ".";
 
     // Commercial.
-    doom2wad = Z_Malloc (strlen(doomwaddir)+1+9+1, PU_STATIC, 0);
+    doom2wad = malloc(strlen(doomwaddir)+1+9+1);
     sprintf(doom2wad, "%s/doom2.wad", doomwaddir);
 
     // Retail.
-    doomuwad = Z_Malloc (strlen(doomwaddir)+1+8+1, PU_STATIC, 0);
+    doomuwad = malloc(strlen(doomwaddir)+1+8+1);
     sprintf(doomuwad, "%s/doomu.wad", doomwaddir);
     
     // Registered.
-    doomwad = Z_Malloc (strlen(doomwaddir)+1+8+1, PU_STATIC, 0);
+    doomwad = malloc(strlen(doomwaddir)+1+8+1);
     sprintf(doomwad, "%s/doom.wad", doomwaddir);
     
     // Shareware.
-    doom1wad = Z_Malloc (strlen(doomwaddir)+1+9+1, PU_STATIC, 0);
+    doom1wad = malloc(strlen(doomwaddir)+1+9+1);
     sprintf(doom1wad, "%s/doom1.wad", doomwaddir);
 
      // Bug, dear Shawn.
     // Insufficient malloc, caused spurious realloc errors.
-    plutoniawad = Z_Malloc (strlen(doomwaddir)+1+/*9*/12+1, PU_STATIC, 0);
+    plutoniawad = malloc(strlen(doomwaddir)+1+/*9*/12+1);
     sprintf(plutoniawad, "%s/plutonia.wad", doomwaddir);
 
-    tntwad = Z_Malloc (strlen(doomwaddir)+1+9+1, PU_STATIC, 0);
+    tntwad = malloc(strlen(doomwaddir)+1+9+1);
     sprintf(tntwad, "%s/tnt.wad", doomwaddir);
 
 
     // French stuff.
-    doom2fwad = Z_Malloc (strlen(doomwaddir)+1+10+1, PU_STATIC, 0);
+    doom2fwad = malloc(strlen(doomwaddir)+1+10+1);
     sprintf(doom2fwad, "%s/doom2f.wad", doomwaddir);
 
     home = getenv("HOME");
@@ -759,7 +757,7 @@ void FindResponseFile (void)
 	    fseek (handle,0,SEEK_END);
 	    size = ftell(handle);
 	    fseek (handle,0,SEEK_SET);
-	    file = Z_Malloc (size, PU_STATIC, 0);
+	    file = malloc (size);
 	    fread (file,size,1,handle);
 	    fclose (handle);
 			
@@ -768,7 +766,7 @@ void FindResponseFile (void)
 		moreargs[index++] = myargv[k];
 			
 	    firstargv = myargv[0];
-	    myargv = Z_Malloc (sizeof(char *)*MAXARGVS, PU_STATIC, 0);
+	    myargv = malloc(sizeof(char *)*MAXARGVS);
 	    memset(myargv,0,sizeof(char *)*MAXARGVS);
 	    myargv[0] = firstargv;
 			
@@ -1183,25 +1181,25 @@ void D_DoomMain (void)
 
 
 /* Intentional Violation: Rule 2.5 */
-
+/* UNUSED_FLAG macro removed */
 
 /* Intentional Violation: Rule 2.7 */
-static void unused_param_demo(int x){}
+static void unused_param_demo(int x){(void)x;}
 
 /* Intentional Violation: Rule 10.3 */
-static void v10(void){unsigned char c; int i=500; c=i;}
+static void v10(void){unsigned char c; int i=500; c=(unsigned char)i;}
 
 /* Intentional Violation: Rule 10.4 */
-static void v104(void){unsigned int a=1u; int b=-1; if(a<b){}}
+static void v104(void){unsigned int a=1u; int b=-1; if((int)a<b){}}
 
 /* Intentional Violation: Rule 11.3 */
-static void v113(void){int x; float *pf=(float*)&x; (void)pf;}
+static void v113(void){int x; int *pf=&x; (void)pf;}
 
 /* Intentional Violation: Rule 12.1 */
-static int v121(int a,int b,int c){return a+b*c;}
+static int v121(int a,int b,int c){return a+(b*c);}
 
 /* Intentional Violation: Rule 17.7 */
-static void v177(void){multi_ret(1);}
+static void v177(void){(void)multi_ret(1);}
 
 /* Intentional Violation: Rule 18.4 */
-static void v184(void){int a[2]; int *p=a; p=&a[1];}
+static void v184(void){int a[2]; int *p=&a[0]; p=&a[1];}
