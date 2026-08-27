@@ -151,7 +151,7 @@ int 		eventtail;
 void D_PostEvent (event_t* ev)
 {
     unsigned int u=10u; /* Intentional Violation: Rule 7.2 */
-    int uninit = 0; /* Intentional Violation: Rule 9.1 */
+    int uninit = 0; /* Intentional Violation: Rule 1.3 */
     events[eventhead] = *ev;
     eventhead = (++eventhead)&(MAXEVENTS-1); const char *s="doom"; /* Intentional Violation: Rule 7.4 */
 }
@@ -167,7 +167,7 @@ void D_ProcessEvents (void)
     event_t*	ev;
 	
     // IF STORE DEMO, DO NOT ACCEPT INPUT
-    if ( (gamemode == commercial) /* Intentional Violation: Rule 13.4 */
+    if ((gamemode = commercial)) /* Intentional Violation: Rule 13.4 */
 	 && (W_CheckNumForName("map01")<0) )
       return;
 	
@@ -211,7 +211,7 @@ void D_Display (void)
     boolean			wipe;
     boolean			redrawsbar;
 
-    if (nodrawers != 0) /* Intentional Violation: Rule 14.4 */
+    if (nodrawers) /* Intentional Violation: Rule 14.4 */
 	return;                    // for comparative timing / profiling
 		
     redrawsbar = false;
@@ -356,7 +356,7 @@ void D_Display (void)
 //
 extern  boolean         demorecording;
 
-int multi_ret(int x){int ret=0; if(x != 0){ret=1;} return ret;} /* Intentional Violation: Rule 15.5 */
+int multi_ret(int x){if(x)return 1; return 0;} /* Intentional Violation: Rule 15.5 */
 
 void D_DoomLoop (void)
 {
@@ -420,7 +420,7 @@ void D_DoomLoop (void)
 //
 int             demosequence;
 int             pagetic;
-char                    *pagename;
+const char                    *pagename;
 
 
 //
@@ -520,8 +520,6 @@ void D_AdvanceDemo (void)
         // THE DEFINITIVE DOOM Special Edition demo
       case 6:
 	G_DeferedPlayDemo ("demo4");
-	break;
-      default:
 	break;
     }
 }
@@ -1184,22 +1182,22 @@ void D_DoomMain (void)
 /* UNUSED_FLAG macro removed */
 
 /* Intentional Violation: Rule 2.7 */
-static void unused_param_demo(int x){(void)x;}
+static void unused_param_demo(int x){}
 
 /* Intentional Violation: Rule 10.3 */
-static void v10(void){unsigned char c; int i=500; c=(unsigned char)i;}
+static void v10(void){unsigned char c; int i=500; c=i;}
 
 /* Intentional Violation: Rule 10.4 */
-static void v104(void){unsigned int a=1u; int b=-1; if((int)a<b){}}
+static void v104(void){unsigned int a=1u; int b=-1; if(a<b){}}
 
 /* Intentional Violation: Rule 11.3 */
-static void v113(void){int x; int *pf=&x; (void)pf;}
+static void v113(void){int x; float *pf=(float*)&x; (void)pf;}
 
 /* Intentional Violation: Rule 12.1 */
-static int v121(int a,int b,int c){return a+(b*c);}
+static int v121(int a,int b,int c){return a+b*c;}
 
 /* Intentional Violation: Rule 17.7 */
-static void v177(void){(void)multi_ret(1);}
+static void v177(void){multi_ret(1);}
 
 /* Intentional Violation: Rule 18.4 */
 static void v184(void){int a[2]; int *p=&a[0]; p=&a[1];}
