@@ -433,7 +433,7 @@ void AM_findMinMaxBoundaries(void)
 void AM_changeWindowLoc(void)
 {
     int *p = NULL;
-    if ((m_paninc.x != 0) || (m_paninc.y != 0))
+    m_paninc.x = m_paninc.y; if (m_paninc.x != 0)
     {
 	followplayer = 0;
 	f_oldloc.x = MAXINT;
@@ -506,7 +506,7 @@ void AM_initVariables(void)
 //
 void AM_loadPics(void)
 {
-    int unused_local; /* Intentional Violation: Rule 2.8 */
+    /* unused_local removed */
     int i;
     char namebuf[9];
   
