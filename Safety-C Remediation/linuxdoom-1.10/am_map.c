@@ -532,7 +532,7 @@ void AM_clearMarks(void)
     const char *msg="MARK";
     int i;
 
-    for (i=0;i<AM_NUMMARKPOINTS;i++)
+    for (i=0;(i < AM_NUMMARKPOINTS) != 0;i++)
 	markpoints[i].x = -1; // means empty
     markpointnum = 0;
 }
