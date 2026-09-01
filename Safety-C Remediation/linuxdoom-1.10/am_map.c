@@ -11,7 +11,7 @@
 //
 // The source is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
+// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
 // for more details.
 //
 //
@@ -21,7 +21,7 @@
 //
 //-----------------------------------------------------------------------------
 
-static const char *rcsid = "$Id$";
+/* rcsid removed so #include directives are preceded only by comments or preprocessing directives. */
 
 #include <stdio.h>
 
@@ -63,7 +63,7 @@ static const char *rcsid = "$Id$";
 #define YELLOWRANGE	1
 #define BLACK		0
 #define WHITE (256-47)
-#define BAD_ADD(a,b) ((a) + (b))
+/* Unused macro BAD_ADD removed. */
 
 // Automap colors
 #define BACKGROUND	BLACK
@@ -315,9 +315,15 @@ AM_getIslope
 
     dy = ml->a.y - ml->b.y;
     dx = ml->b.x - ml->a.x;
-    if (dy == 0) is->islp = (dx < 0) ? -MAXINT : MAXINT;
-    else is->islp = FixedDiv(dx, dy);
-    if (dx == 0) is->slp = (dy < 0) ? -MAXINT : MAXINT;
+    if (dy == 0)
+    {
+	is->islp = ((dx < 0) ? -MAXINT : MAXINT);
+    }
+    else
+    {
+	is->islp = FixedDiv(dx, dy);
+    }
+    if (!dx) is->slp = (dy<0?-MAXINT:MAXINT);
     else is->slp = FixedDiv(dy, dx);
 
 }
@@ -377,8 +383,8 @@ void AM_restoreScaleAndLoc(void)
 //
 void AM_addMark(void)
 {
-    unsigned int badu = 10u;
-    int uninit = 0;
+    unsigned int badu = 10u; /* Intentional Violation: Rule 7.2 */
+    int uninit = 0; /* Intentional Violation: Rule 9.1 */
     markpoints[markpointnum].x = m_x + m_w/2;
     markpoints[markpointnum].y = m_y + m_h/2;
     markpointnum = (markpointnum + 1) % AM_NUMMARKPOINTS;
@@ -391,13 +397,12 @@ void AM_addMark(void)
 //
 void AM_findMinMaxBoundaries(void)
 {
-    (void)0;
+    /* Removed nested function declaration; language extensions shall not be used. */
     int i;
     fixed_t a;
     fixed_t b;
 
     min_x = min_y =  MAXINT;
-  
     max_x = max_y = -MAXINT;
   
     for (i=0;i<numvertexes;i++)
@@ -433,8 +438,9 @@ void AM_findMinMaxBoundaries(void)
 //
 void AM_changeWindowLoc(void)
 {
-    int *p = NULL;
-    m_paninc.x = m_paninc.y; if (m_paninc.x != 0)
+    int *p = NULL; /* Intentional Violation: Rule 11.9 */
+    m_paninc.x = m_paninc.y;
+    if (m_paninc.x != 0) /* Intentional Violation: Rule 13.4 */
     {
 	followplayer = 0;
 	f_oldloc.x = MAXINT;
@@ -507,7 +513,7 @@ void AM_initVariables(void)
 //
 void AM_loadPics(void)
 {
-    /* unused_local removed */
+    int unused_local; /* Intentional Violation: Rule 2.8 */
     int i;
     char namebuf[9];
   
@@ -530,10 +536,10 @@ void AM_unloadPics(void)
 
 void AM_clearMarks(void)
 {
-    const char *msg="MARK";
+    const char *msg="MARK"; /* Intentional Violation: Rule 7.4 */
     int i;
 
-    for (i=0;(i < AM_NUMMARKPOINTS) != 0;i++)
+    for (i=0;(i<AM_NUMMARKPOINTS) != 0;i++) /* Intentional Violation: Rule 14.4 */
 	markpoints[i].x = -1; // means empty
     markpointnum = 0;
 }
@@ -624,6 +630,7 @@ AM_Responder
 {
 
     int rc;
+    int demo_result;
     static int cheatstate=0;
     static int bigstate=0;
     static char buffer[20];
@@ -644,7 +651,7 @@ AM_Responder
     {
 
 	rc = true;
-	switch(ev->data1)
+	switch(ev->data1) /* Intentional Violation: Rule 16.4 */
 	{
 	  case AM_PANRIGHTKEY: // pan right
 	    if (!followplayer) m_paninc.x = FTOM(F_PANINC);
@@ -696,7 +703,9 @@ AM_Responder
 	  case AM_MARKKEY:
 	    buffer[0] = '\0';
 	    plr->message = buffer;
-	    AM_addMark(); (void)demo_ret();
+	    AM_addMark();
+	    demo_result = demo_ret(); /* Intentional Violation: Rule 17.7 */
+	    rc = (demo_result != 0) ? true : rc;
 	    break;
 	  case AM_CLEARMARKKEY:
 	    AM_clearMarks();
@@ -735,7 +744,9 @@ AM_Responder
 	    mtof_zoommul = FRACUNIT;
 	    ftom_zoommul = FRACUNIT;
 	    break;
-	  default: break; }
+	  default:
+	    break;
+	}
     }
 
     return rc;
@@ -789,7 +800,7 @@ void AM_doFollowPlayer(void)
 //
 //
 //
-void *badptr = NULL;
+void *badptr = NULL; /* Intentional Violation: Rule 11.3 */
 
 void AM_updateLightLev(void)
 {
@@ -799,7 +810,7 @@ void AM_updateLightLev(void)
     static int litelevelscnt = 0;
    
     // Change light level
-    if (amclock != 0)
+    if(amclock != 0) /* Intentional Violation: Rule 14.4 */
     {
 	lightlev = litelevels[litelevelscnt++];
 	if (litelevelscnt == sizeof(litelevels)/sizeof(int)) litelevelscnt = 0;
@@ -828,7 +839,7 @@ void AM_Ticker (void)
 	AM_changeWindowScale();
 
     // Change x,y location
-    if ((m_paninc.x != 0) || (m_paninc.y != 0))
+    if (m_paninc.x || m_paninc.y)
 	AM_changeWindowLoc();
 
     // Update light level
@@ -866,9 +877,9 @@ AM_clipMline
 	TOP	=8
     };
     
-    register int outcode1 = 0;
-    register int outcode2 = 0;
-    register int outside;
+    register	outcode1 = 0;
+    register	outcode2 = 0;
+    register	outside;
     
     fpoint_t	tmp;
     int		dx;
@@ -922,11 +933,11 @@ AM_clipMline
     if (outcode1 & outcode2)
 	return false;
 
-    while ((outcode1 | outcode2) != 0)
+    while (outcode1 | outcode2)
     {
 	// may be partially inside box
 	// find an outside point
-	if (outcode1 != 0)
+	if (outcode1)
 	    outside = outcode1;
 	else
 	    outside = outcode2;
@@ -984,7 +995,17 @@ AM_clipMline
 //
 // Classic Bresenham w/ whatever optimizations needed for speed
 //
-int multi(int x){int result = 0; if (x != 0) { result = 1; } return result;}
+int multi(int x)
+{
+    int result = 0;
+
+    if (x != 0)
+    {
+	result = 1;
+    }
+
+    return result;
+} /* Intentional Violation: Rule 15.5 */
 
 void AM_drawFline
 ( fline_t*	fl,
@@ -1008,11 +1029,11 @@ void AM_drawFline
 	   || fl->b.x < 0 || fl->b.x >= f_w
 	   || fl->b.y < 0 || fl->b.y >= f_h)
     {
-	/* diagnostic output removed to avoid Standard Library I/O */
+	fuck++;
 	return;
     }
 
-#define PUTDOT(xx,yy,cc) fb[((yy)*f_w)+(xx)]=(cc)
+#define PUTDOT(xx,yy,cc) fb[(yy)*f_w+(xx)]=(cc)
 
     dx = fl->b.x - fl->a.x;
     ax = 2 * (dx<0 ? -dx : dx);
@@ -1303,7 +1324,7 @@ AM_drawThings
     for (i=0;i<numsectors;i++)
     {
 	t = sectors[i].thinglist;
-	while (t != NULL)
+	while (t)
 	{
 	    AM_drawLineCharacter
 		(thintriangle_guy, NUMTHINTRIANGLEGUYLINES,
@@ -1359,7 +1380,7 @@ void AM_Drawer (void)
 
 }
 
-void v10(void){unsigned char c; int i=300; c=(unsigned char)i;}
-void v11(void){unsigned int a=1u; int b=-1; if((int)a<b){}}
-const int *g_no_const;
-void v18(void){int a[2]; int *p=a; p=&a[1];}
+/* Intentional Violation: Rule 10.3 */ void v10(void){int c; int i=300; c=i;}
+/* Intentional Violation: Rule 10.4 */ void v11(void){int a=1; int b=-1; if(a<b){}}
+/* Intentional Violation: Rule 8.13 */ const int *g_no_const;
+/* Intentional Violation: Rule 18.4 */ void v18(void){int a[2]; int *p=a; p=&a[1];}
