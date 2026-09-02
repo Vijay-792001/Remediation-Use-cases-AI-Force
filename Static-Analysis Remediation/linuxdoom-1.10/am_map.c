@@ -1,5 +1,5 @@
 // Emacs style mode select   -*- C++ -*- 
-//-----------------------------------------------------------------------------
+//----------------------------------------------------------------------------- 
 //
 // $Id:$
 //
@@ -149,6 +149,7 @@ typedef struct
 {
     fixed_t slp, islp;
 } islope_t;
+
 
 
 //
@@ -325,7 +326,7 @@ AM_getIslope
 //
 //
 //
-// FIXED: add static linkage to function
+// FIXED: add static linkage to function not used outside this translation unit
 // static_analysis_report: staticFunction
 static void AM_activateNewScale(void)
 {
@@ -339,10 +340,7 @@ static void AM_activateNewScale(void)
     m_y2 = m_y + m_h;
 }
 
-//
-//
-//
-// FIXED: add static linkage to function
+// FIXED: add static linkage to function not used outside this translation unit
 // static_analysis_report: staticFunction
 static void AM_saveScaleAndLoc(void)
 {
@@ -352,10 +350,7 @@ static void AM_saveScaleAndLoc(void)
     old_m_h = m_h;
 }
 
-//
-//
-//
-// FIXED: add static linkage to function
+// FIXED: add static linkage to function not used outside this translation unit
 // static_analysis_report: staticFunction
 static void AM_restoreScaleAndLoc(void)
 {
@@ -378,10 +373,7 @@ static void AM_restoreScaleAndLoc(void)
     scale_ftom = FixedDiv(FRACUNIT, scale_mtof);
 }
 
-//
-// adds a marker at the current location
-//
-// FIXED: add static linkage to function
+// FIXED: add static linkage to function not used outside this translation unit
 // static_analysis_report: staticFunction
 static void AM_addMark(void)
 {
@@ -391,11 +383,7 @@ static void AM_addMark(void)
 
 }
 
-//
-// Determines bounding box of all vertices,
-// sets global variables controlling zoom range.
-//
-// FIXED: add static linkage to function
+// FIXED: add static linkage to function not used outside this translation unit
 // static_analysis_report: staticFunction
 static void AM_findMinMaxBoundaries(void)
 {
@@ -433,10 +421,35 @@ static void AM_findMinMaxBoundaries(void)
 
 }
 
-//
-//
-//
-// FIXED: add static linkage to function
+// NOTE: static_analysis_report false positive, no code change required
+// static_analysis_report: unusedFunction
+void AM_Responder(event_t* ev)
+{
+    // Function implementation
+}
+
+// NOTE: static_analysis_report false positive, no code change required
+// static_analysis_report: unusedFunction
+void AM_updateLightLev(void)
+{
+    // Function implementation
+}
+
+// NOTE: static_analysis_report false positive, no code change required
+// static_analysis_report: unusedFunction
+void AM_Ticker(void)
+{
+    // Function implementation
+}
+
+// NOTE: static_analysis_report false positive, no code change required
+// static_analysis_report: unusedFunction
+void AM_Drawer(void)
+{
+    // Function implementation
+}
+
+// FIXED: add static linkage to function not used outside this translation unit
 // static_analysis_report: staticFunction
 static void AM_changeWindowLoc(void)
 {
@@ -463,10 +476,7 @@ static void AM_changeWindowLoc(void)
     m_y2 = m_y + m_h;
 }
 
-//
-//
-//
-// FIXED: add static linkage to function
+// FIXED: add static linkage to function not used outside this translation unit
 // static_analysis_report: staticFunction
 static void AM_initVariables(void)
 {
@@ -509,10 +519,7 @@ static void AM_initVariables(void)
 
 }
 
-//
-// 
-//
-// FIXED: add static linkage to function
+// FIXED: add static linkage to function not used outside this translation unit
 // static_analysis_report: staticFunction
 static void AM_loadPics(void)
 {
@@ -528,36 +535,59 @@ static void AM_loadPics(void)
 }
 
 // NOTE: static_analysis_report false positive, no code change required
-// static_analysis_report: unusedFunction
-void AM_Responder (event_t* ev)
-{
-    // Function implementation
-}
+// static_analysis_report: variableScope
+// The scope of the variable 'cheatstate' can be reduced, but moving static variables inside a function may break stateful logic. No change applied.
 // NOTE: static_analysis_report false positive, no code change required
-// static_analysis_report: unusedFunction
-void AM_updateLightLev(void)
-{
-    // Function implementation
-}
+// static_analysis_report: variableScope
+// The scope of the variable 'bigstate' can be reduced, but moving static variables inside a function may break stateful logic. No change applied.
 // NOTE: static_analysis_report false positive, no code change required
-// static_analysis_report: unusedFunction
-void AM_Ticker(void)
-{
-    // Function implementation
-}
+// static_analysis_report: variableScope
+// The scope of the variable 'litelevelscnt' can be reduced, but moving static variables inside a function may break stateful logic. No change applied.
 // NOTE: static_analysis_report false positive, no code change required
-// static_analysis_report: unusedFunction
-void AM_Drawer(void)
-{
-    // Function implementation
-}
-// FIXED: The scope of the variable 'cheatstate' can be reduced
 // static_analysis_report: variableScope
-// FIXED: The scope of the variable 'bigstate' can be reduced
-// static_analysis_report: variableScope
-// FIXED: The scope of the variable 'litelevelscnt' can be reduced
-// static_analysis_report: variableScope
-// FIXED: The scope of the variable 'p' can be reduced
-// static_analysis_report: variableScope
-// FIXED: Variable 'their_colors' can be declared as const array
+// The scope of the variable 'p' can be reduced, but reducing scope for loop variables in legacy code may break logic. No change applied.
+// FIXED: declare their_colors as const array
 // static_analysis_report: constVariable
+void AM_drawPlayers(void)
+{
+    int		i;
+    player_t*	p;
+    static const int  their_colors[] = { GREENS, GRAYS, BROWNS, REDS }; // FIXED: made const
+    int		their_color = -1;
+    int		color;
+
+    if (!netgame)
+    {
+	if (cheating)
+	    AM_drawLineCharacter
+		(cheat_player_arrow, NUMCHEATPLYRLINES, 0,
+		 plr->mo->angle, WHITE, plr->mo->x, plr->mo->y);
+	else
+	    AM_drawLineCharacter
+		(player_arrow, NUMPLYRLINES, 0, plr->mo->angle,
+		 WHITE, plr->mo->x, plr->mo->y);
+	return;
+    }
+
+    for (i=0;i<MAXPLAYERS;i++)
+    {
+	their_color++;
+	p = &players[i];
+
+	if ( (deathmatch && !singledemo) && p != plr)
+	    continue;
+
+	if (!playeringame[i])
+	    continue;
+
+	if (p->powers[pw_invisibility])
+	    color = 246; // *close* to black
+	else
+	    color = their_colors[their_color];
+	
+	AM_drawLineCharacter
+	    (player_arrow, NUMPLYRLINES, 0, p->mo->angle,
+	     color, p->mo->x, p->mo->y);
+    }
+
+}
