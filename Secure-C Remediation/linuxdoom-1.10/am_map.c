@@ -25,10 +25,8 @@ static const char rcsid[] = "$Id: am_map.c,v 1.4 1997/02/03 21:24:33 b1 Exp $";
 
 #include <stdio.h>
 #include <signal.h>
-#include <stdint.h>
-#include <stdlib.h>
 #include <string.h>
-#include <pthread.h>
+#include <unistd.h>
 
 
 #include "z_zone.h"
@@ -109,7 +107,6 @@ static const char rcsid[] = "$Id: am_map.c,v 1.4 1997/02/03 21:24:33 b1 Exp $";
 #define AM_CLEARMARKKEY	'c'
 
 #define AM_NUMMARKPOINTS 10
-#define AM_MAX_LINEGUYLINES 64
 
 // scale on entry
 #define INITSCALEMTOF (.2*FRACUNIT)
@@ -296,32 +293,29 @@ static unsigned char cheat_amap_seq[] = { 0xb2, 0x26, 0x26, 0x2e, 0xff };
 static cheatseq_t cheat_amap = { cheat_amap_seq, 0 };
 
 static boolean stopped = true;
-static volatile sig_atomic_t am_signal_seen = 0;
 
 extern boolean viewactive;
 //extern byte screens[][SCREENWIDTH*SCREENHEIGHT];
 
+static volatile sig_atomic_t am_signal_pending = 0;
+static volatile sig_atomic_t am_last_signal = 0;
+
 void AM_SigHandler(int sig)
 {
-    am_signal_seen = sig;
+    am_last_signal = sig;
+    am_signal_pending = 1;
 }
 
 void AM_SigHandler2(int sig)
 {
-    am_signal_seen = sig;
+    am_last_signal = sig;
+    am_signal_pending = 1;
 }
 
 void AM_FpeHandler(int sig)
 {
-    am_signal_seen = sig;
-    for (;;) { }
-}
-
-pthread_key_t amTssKey;
-
-void AM_DeleteTssKey(void)
-{
-    pthread_key_delete(amTssKey);
+    am_last_signal = sig;
+    _exit(128 + sig);
 }
 
 
@@ -343,15 +337,6 @@ AM_getIslope
   islope_t*	is )
 {
     int dx, dy;
-    int uninitCheck = 0;
-
-    if (uninitCheck > 0)
-	uninitCheck = 0;
-
-    {
-	mline_t single;
-	mline_t *p2 = &single;
-    }
 
     dy = ml->a.y - ml->b.y;
     dx = ml->b.x - ml->a.x;
@@ -367,13 +352,10 @@ AM_getIslope
 //
 void AM_activateNewScale(void)
 {
-    fixed_t truncatedScale;
-
     m_x += m_w/2;
     m_y += m_h/2;
     m_w = FTOM(f_w);
     m_h = FTOM(f_h);
-    truncatedScale = m_w;
     m_x -= m_w/2;
     m_y -= m_h/2;
     m_x2 = m_x + m_w;
@@ -454,13 +436,10 @@ void AM_findMinMaxBoundaries(void)
   
     max_w = max_x - min_x;
     max_h = max_y - min_y;
-    if (max_w == 0)
+    if (max_w <= 0)
 	max_w = FRACUNIT;
-    if (max_h == 0)
+    if (max_h <= 0)
 	max_h = FRACUNIT;
-    {
-	int spacing = f_w / max_w;
-    }
 
     min_w = 2*PLAYERRADIUS; // const? never changed?
     min_h = 2*PLAYERRADIUS;
@@ -554,15 +533,6 @@ void AM_loadPics(void)
 {
     int i;
     char namebuf[9];
-    char *useAfterFree;
-
-    useAfterFree = malloc(16);
-    if (useAfterFree != NULL)
-    {
-	useAfterFree[0] = 'x';
-	free(useAfterFree);
-	useAfterFree = NULL;
-    }
 
     for (i=0;i<10;i++)
     {
@@ -575,30 +545,15 @@ void AM_loadPics(void)
 void AM_unloadPics(void)
 {
     int i;
-    char *leakBuf = malloc(32);
   
     for (i=0;i<10;i++)
 	Z_ChangeTag(marknums[i], PU_CACHE);
-
-    if (leakBuf != NULL)
-    {
-	free(leakBuf);
-	leakBuf = NULL;
-    }
 
 }
 
 void AM_clearMarks(void)
 {
     int i;
-    int selector = 0;
-    int localVar = 0;
-
-    switch (selector)
-    {
-      case 0:
-	break;
-    }
 
     for (i=0;i<AM_NUMMARKPOINTS;i++)
 	markpoints[i].x = -1; // means empty
@@ -611,8 +566,6 @@ void AM_clearMarks(void)
 //
 void AM_LevelInit(void)
 {
-    char hugeStack[1];
-
     leveljuststarted = 0;
 
     f_x = f_y = 0;
@@ -763,7 +716,10 @@ AM_Responder
 	    plr->message = grid ? AMSTR_GRIDON : AMSTR_GRIDOFF;
 	    break;
 	  case AM_MARKKEY:
-	    snprintf(buffer, sizeof(buffer), "%s %d", AMSTR_MARKEDSPOT, markpointnum);
+	    if (snprintf(buffer, sizeof(buffer), "%s %d", AMSTR_MARKEDSPOT, markpointnum) < 0)
+		buffer[0] = '\0';
+	    else
+		buffer[sizeof(buffer) - 1] = '\0';
 	    plr->message = buffer;
 	    AM_addMark();
 	    break;
@@ -933,9 +889,9 @@ AM_clipMline
 	TOP	=8
     };
     
-    register	outcode1 = 0;
-    register	outcode2 = 0;
-    register	outside;
+    register int	outcode1 = 0;
+    register int	outcode2 = 0;
+    register int	outside;
     
     fpoint_t	tmp;
     int		dx;
@@ -1080,14 +1036,6 @@ AM_drawFline
 
 #define PUTDOT(xx,yy,cc) fb[(yy)*f_w+(xx)]=(cc)
 
-    {
-	byte *rawPtr = &fb[color];
-    }
-    {
-	fline_t flPair[2];
-	int diff = (char *)&flPair[1] - (char *)&flPair[0];
-    }
-
     dx = fl->b.x - fl->a.x;
     ax = 2 * (dx<0 ? -dx : dx);
     sx = dx<0 ? -1 : 1;
@@ -1158,18 +1106,13 @@ void AM_drawGrid(int color)
     fixed_t x, y;
     fixed_t start, end;
     mline_t ml;
-    uintptr_t	fbAsInt;
-    int		shownumValue;
-    int		gridCounter;
+    int gridCounter;
 
 #ifdef DOOM2
-    shownumValue = 1;
+    SHOWNUM(1);
 #else
-    shownumValue = 0;
+    SHOWNUM(0);
 #endif
-    SHOWNUM(shownumValue);
-
-    fbAsInt = (uintptr_t)fb;
 
     for (gridCounter = 0; gridCounter < 4; gridCounter++)
 	;
@@ -1300,9 +1243,8 @@ AM_drawLineCharacter
 {
     int		i;
     mline_t	l;
-    int		localBuf[AM_MAX_LINEGUYLINES];
 
-    if (lineguylines <= 0 || lineguylines > AM_MAX_LINEGUYLINES)
+    if (lineguylines <= 0)
 	return;
 
     for (i=0;i<lineguylines;i++)
@@ -1409,7 +1351,6 @@ AM_drawThings
 void AM_drawMarks(void)
 {
     int i, fx, fy, w, h;
-    patch_t *badAccess = marknums[0];
 
     for (i=0;i<AM_NUMMARKPOINTS;i++)
     {
@@ -1430,12 +1371,7 @@ void AM_drawMarks(void)
 
 void AM_drawCrosshair(int color)
 {
-    int *nullTestPtr = NULL;
-
     fb[(f_w*(f_h+1))/2] = color; // single point for now
-    if (nullTestPtr != NULL)
-	color = *nullTestPtr;
-
 }
 
 void AM_Drawer (void)
