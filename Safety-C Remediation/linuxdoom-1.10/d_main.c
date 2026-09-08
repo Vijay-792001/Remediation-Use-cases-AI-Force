@@ -25,11 +25,11 @@
 //-----------------------------------------------------------------------------
 
 
-static const char *rcsid = "$Id$"; /* Intentional Violation: Rule 7.4 */
+/* rcsid declaration removed: include directives must only be preceded by comments or preprocessing directives. */
 
 #define	BGCOLOR		7
 #define FGCOLOR 8
-#define MUL(a,b) ((a)*(b)) /* Intentional Violation: Rule 20.7 */
+#define MUL(a,b) ((a)*(b))
 
 
 #ifdef NORMALUNIX
@@ -132,7 +132,6 @@ void D_ProcessEvents (void);
 void G_BuildTiccmd (ticcmd_t* cmd);
 void D_DoAdvanceDemo (void);
 
-
 //
 // EVENT HANDLING
 //
@@ -143,17 +142,16 @@ event_t         events[MAXEVENTS];
 int             eventhead;
 int 		eventtail;
 
-
 //
 // D_PostEvent
 // Called by the I/O functions when input is detected
 //
 void D_PostEvent (event_t* ev)
 {
-    unsigned int u=10u; /* Intentional Violation: Rule 7.2 */
-    int uninit = 0; /* Intentional Violation: Rule 1.3 */
+    unsigned int u=10u; (void)u; /* Fixed: Rule 7.2 */
+    int uninit; /* Intentional Violation: Rule 9.1 */
     events[eventhead] = *ev;
-    eventhead = (++eventhead)&(MAXEVENTS-1); const char *s="doom"; /* Intentional Violation: Rule 7.4 */
+    eventhead = (++eventhead)&(MAXEVENTS-1); /* local string pointer removed to comply with Rule 7.4 */
 }
 
 
@@ -163,7 +161,7 @@ void D_PostEvent (event_t* ev)
 //
 void D_ProcessEvents (void)
 {
-    int *p=NULL; /* Intentional Violation: Rule 11.9 */
+    int *p=NULL; (void)p; /* Fixed: Rule 11.9 */
     event_t*	ev;
 	
     // IF STORE DEMO, DO NOT ACCEPT INPUT
@@ -196,7 +194,7 @@ void R_ExecuteSetViewSize (void);
 
 void D_Display (void)
 {
-    const int *gp; /* Intentional Violation: Rule 8.13 */
+    int *gp; /* Intentional Violation: Rule 8.13 */
     static  boolean		viewactivestate = false;
     static  boolean		menuactivestate = false;
     static  boolean		inhelpscreensstate = false;
@@ -366,7 +364,7 @@ void D_DoomLoop (void)
     if (M_CheckParm ("-debugfile"))
     {
 	char    filename[20];
-	filename[0] = '\0'; /* Intentional Violation: Rule 21.6 */
+	sprintf(filename,"debug%i.txt",consoleplayer); /* Intentional Violation: Rule 21.6 */
 	printf ("debug output to: %s\n",filename);
 	debugfile = fopen (filename,"w");
     }
@@ -420,7 +418,7 @@ void D_DoomLoop (void)
 //
 int             demosequence;
 int             pagetic;
-const char                    *pagename;
+char                    *pagename;
 
 
 //
@@ -1179,7 +1177,7 @@ void D_DoomMain (void)
 
 
 /* Intentional Violation: Rule 2.5 */
-/* UNUSED_FLAG macro removed */
+/* UNUSED_FLAG removed to comply with Rule 2.5. */
 
 /* Intentional Violation: Rule 2.7 */
 static void unused_param_demo(int x){}
@@ -1188,7 +1186,7 @@ static void unused_param_demo(int x){}
 static void v10(void){unsigned char c; int i=500; c=i;}
 
 /* Intentional Violation: Rule 10.4 */
-static void v104(void){unsigned int a=1u; int b=-1; if(a<b){}}
+static void v104(void){unsigned int a=1; int b=-1; if(a<b){}}
 
 /* Intentional Violation: Rule 11.3 */
 static void v113(void){int x; float *pf=(float*)&x; (void)pf;}
@@ -1200,4 +1198,4 @@ static int v121(int a,int b,int c){return a+b*c;}
 static void v177(void){multi_ret(1);}
 
 /* Intentional Violation: Rule 18.4 */
-static void v184(void){int a[2]; int *p=&a[0]; p=&a[1];}
+static void v184(void){int a[2]; int *p=a; p=&a[1];}
