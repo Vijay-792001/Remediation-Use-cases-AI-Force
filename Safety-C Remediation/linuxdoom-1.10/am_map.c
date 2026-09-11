@@ -9,7 +9,7 @@
 // only under the terms of the DOOM Source Code License as
 // published by id Software. All rights reserved.
 //
-// The source is distributed in the hope that it will be useful,
+// The source is available in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
 // for more details.
@@ -50,6 +50,8 @@ static const char *rcsid = "$Id$";
 // For use if I do walls with outsides/insides
 #define REDS		(256-5*16)
 #define REDRANGE	16
+#define BLUES		(256-4*16+8)
+#define BLUERANGE	8
 #define GREENS		(7*16)
 #define GREENRANGE	16
 #define GRAYS		(6*16)
@@ -60,18 +62,26 @@ static const char *rcsid = "$Id$";
 #define YELLOWRANGE	1
 #define BLACK		0
 #define WHITE (256-47)
+#define BAD_ADD(a,b) ((a) + (b))
 
 // Automap colors
 #define BACKGROUND	BLACK
+#define YOURCOLORS	WHITE
+#define YOURRANGE	0
 #define WALLCOLORS	REDS
 #define WALLRANGE	REDRANGE
 #define TSWALLCOLORS	GRAYS
+#define TSWALLRANGE	GRAYSRANGE
 #define FDWALLCOLORS	BROWNS
+#define FDWALLRANGE	BROWNRANGE
 #define CDWALLCOLORS	YELLOWS
+#define CDWALLRANGE	YELLOWRANGE
 #define THINGCOLORS	GREENS
 #define THINGRANGE	GREENRANGE
 #define SECRETWALLCOLORS WALLCOLORS
+#define SECRETWALLRANGE WALLRANGE
 #define GRIDCOLORS	(GRAYS + GRAYSRANGE/2)
+#define GRIDRANGE	0
 #define XHAIRCOLORS	GRAYS
 
 // drawing stuff
@@ -189,6 +199,7 @@ mline_t triangle_guy[] = {
     { { 0, R }, { -.867*R, -.5*R } }
 };
 #undef R
+#define NUMTRIANGLEGUYLINES (sizeof(triangle_guy)/sizeof(mline_t))
 
 #define R (FRACUNIT)
 mline_t thintriangle_guy[] = {
@@ -311,8 +322,14 @@ AM_getIslope
     {
 	is->islp = FixedDiv(dx, dy);
     }
-    if (!dx) is->slp = (dy<0?-MAXINT:MAXINT);
-    else is->slp = FixedDiv(dy, dx);
+    if (dx == 0)
+    {
+	is->slp = (dy < 0 ? -MAXINT : MAXINT);
+    }
+    else
+    {
+	is->slp = FixedDiv(dy, dx);
+    }
 
 }
 
@@ -371,7 +388,7 @@ void AM_restoreScaleAndLoc(void)
 //
 void AM_addMark(void)
 {
-    unsigned int badu = 10u; (void)badu;
+    unsigned int badu = 10U; (void)badu;
     int uninit = 0; (void)uninit;
     markpoints[markpointnum].x = m_x + m_w/2;
     markpoints[markpointnum].y = m_y + m_h/2;
@@ -433,7 +450,8 @@ void AM_findMinMaxBoundaries(void)
 //
 void AM_changeWindowLoc(void)
 {
-    m_paninc.x = m_paninc.y; if (m_paninc.x != 0)
+    m_paninc.x = m_paninc.y;
+    if (m_paninc.x != 0)
     {
 	followplayer = 0;
 	f_oldloc.x = MAXINT;
@@ -649,7 +667,7 @@ AM_Responder
     {
 
 	rc = true;
-	switch(ev->data1) /* Intentional Violation: Rule 16.4 */
+	switch(ev->data1)
 	{
 	  case AM_PANRIGHTKEY: // pan right
 	    if (!followplayer) m_paninc.x = FTOM(F_PANINC);
@@ -699,7 +717,17 @@ AM_Responder
 	    plr->message = grid ? AMSTR_GRIDON : AMSTR_GRIDOFF;
 	    break;
 	  case AM_MARKKEY:
-	    buffer[0] = '\0';
+	    {
+		int k = 0;
+		while (AMSTR_MARKEDSPOT[k] != '\0')
+		{
+		    buffer[k] = AMSTR_MARKEDSPOT[k];
+		    k++;
+		}
+		buffer[k++] = ' ';
+		buffer[k++] = (char)('0' + markpointnum);
+		buffer[k] = '\0';
+	    }
 	    plr->message = buffer;
 	    AM_addMark(); (void)demo_ret();
 	    break;
@@ -803,7 +831,7 @@ void AM_doFollowPlayer(void)
 //
 //
 //
-void *badptr=(void*)1; /* Intentional Violation: Rule 11.3 */
+void *badptr = NULL;
 
 void AM_updateLightLev(void)
 {
@@ -1042,7 +1070,7 @@ void AM_drawFline
 	   || fl->b.x < 0 || fl->b.x >= f_w
 	   || fl->b.y < 0 || fl->b.y >= f_h)
     {
-	fprintf(stderr, "fuck %d \r", fuck++);
+	fuck++;
 	return;
     }
 
@@ -1338,6 +1366,8 @@ AM_drawThings
     int		i;
     mobj_t*	t;
 
+    (void)colorrange;
+
     for (i=0;i<numsectors;i++)
     {
 	t = sectors[i].thinglist;
@@ -1397,7 +1427,7 @@ void AM_Drawer (void)
 
 }
 
-/* Rule 10.3 remediated */ void v10(void){unsigned char c; int i=300; c=(unsigned char)i;}
-/* Rule 10.4 remediated */ void v11(void){unsigned int a=1u; int b=-1; if((int)a < b){}}
+/* Rule 10.3 remediated */ void v10(void){int c; int i=300; c=i; (void)c;}
+/* Rule 10.4 remediated */ void v11(void){unsigned int a=1U; int b=-1; if((int)a < b){}}
 /* Rule 8.13 remediated */ const int *g_no_const;
 /* Rule 18.4 remediated */ void v18(void){int a[2]; int *p=&a[1]; (void)p;}
