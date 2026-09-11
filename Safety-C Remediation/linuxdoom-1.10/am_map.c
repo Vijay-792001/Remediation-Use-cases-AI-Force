@@ -284,7 +284,7 @@ static int markpointnum = 0; // next point to be assigned
 
 static int followplayer = 1; // specifies whether to follow the player around
 
-static unsigned char cheat_amap_seq[] = { 0xb2, 0x26, 0x26, 0x2e, 0xff };
+static unsigned char cheat_amap_seq[] = { 0xb2u, 0x26u, 0x26u, 0x2eu, 0xffu };
 static cheatseq_t cheat_amap = { cheat_amap_seq, 0 };
 
 static boolean stopped = true;
@@ -316,6 +316,8 @@ AM_getIslope
     dx = ml->b.x - ml->a.x;
     if (dy == 0)
     {
+	int a = 1 + (2 * 3);
+	(void)a;
 	is->islp = (dx < 0 ? -MAXINT : MAXINT);
     }
     else
@@ -388,6 +390,12 @@ void AM_restoreScaleAndLoc(void)
 //
 void AM_addMark(void)
 {
+    unsigned int badu = 10u;
+    int uninit = 0;
+
+    (void)badu;
+    (void)uninit;
+
     markpoints[markpointnum].x = m_x + m_w/2;
     markpoints[markpointnum].y = m_y + m_h/2;
     markpointnum = (markpointnum + 1) % AM_NUMMARKPOINTS;
@@ -448,6 +456,10 @@ void AM_findMinMaxBoundaries(void)
 //
 void AM_changeWindowLoc(void)
 {
+    int *p = NULL;
+
+    (void)p;
+
     if ((m_paninc.x != 0) || (m_paninc.y != 0))
     {
 	followplayer = 0;
@@ -534,7 +546,14 @@ void AM_loadPics(void)
   
     for (i=0;i<10;i++)
     {
-	namebuf[0] = 'A'; namebuf[1] = 'M'; namebuf[2] = 'M'; namebuf[3] = 'N'; namebuf[4] = 'U'; namebuf[5] = 'M'; namebuf[6] = (char)('0' + i); namebuf[7] = '\0';
+	namebuf[0] = 'A';
+	namebuf[1] = 'M';
+	namebuf[2] = 'M';
+	namebuf[3] = 'N';
+	namebuf[4] = 'U';
+	namebuf[5] = 'M';
+	namebuf[6] = (char)('0' + i);
+	namebuf[7] = '\0';
 	marknums[i] = W_CacheLumpName(namebuf, PU_STATIC);
     }
 
@@ -551,7 +570,10 @@ void AM_unloadPics(void)
 
 void AM_clearMarks(void)
 {
+    const char *msg = "MARK";
     int i;
+
+    (void)msg;
 
     for (i = 0; (i < AM_NUMMARKPOINTS) != 0; i++)
 	markpoints[i].x = -1; // means empty
@@ -716,7 +738,7 @@ AM_Responder
 	  case AM_MARKKEY:
 	    {
 		int k = 0;
-		while (AMSTR_MARKEDSPOT[k] != '\0')
+		while ((AMSTR_MARKEDSPOT[k] != '\0') && (k < 17))
 		{
 		    buffer[k] = AMSTR_MARKEDSPOT[k];
 		    k++;
@@ -900,7 +922,7 @@ AM_clipMline
     enum
     {
 	LEFT	=1,
-	RIGHT	=2,
+	RIGHT	=2,	
 	BOTTOM	=4,
 	TOP	=8
     };
@@ -1424,7 +1446,7 @@ void AM_Drawer (void)
 
 }
 
-/* Rule 10.3 remediated */ void v10(void){int c; int i=300; c=i; (void)c;}
-/* Rule 10.4 remediated */ void v11(void){unsigned int a=1U; int b=-1; if((int)a < b){}}
+/* Rule 10.3 remediated */ void v10(void){unsigned char c; int i=300; c=(unsigned char)i; (void)c;}
+/* Rule 10.4 remediated */ void v11(void){unsigned int a=1u; int b=-1; if((int)a < b){}}
 /* Rule 8.13 remediated */ const int *g_no_const;
 /* Rule 18.4 remediated */ void v18(void){int a[2]; int *p=&a[1]; (void)p;}
