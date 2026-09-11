@@ -109,7 +109,7 @@ static const char rcsid[] = "$Id: am_map.c,v 1.4 1997/02/03 21:24:33 b1 Exp $";
 #define AM_CLEARMARKKEY	'c'
 
 #define AM_NUMMARKPOINTS 10
-#define AM_MAX_LINEGUYLINES 64
+#define AM_MAX_LINEGUYLINES NUMCHEATPLYRLINES
 
 // scale on entry
 #define INITSCALEMTOF (.2*FRACUNIT)
@@ -367,13 +367,13 @@ AM_getIslope
 //
 void AM_activateNewScale(void)
 {
-    fixed_t truncatedScale;
+    short truncatedScale;
 
     m_x += m_w/2;
     m_y += m_h/2;
     m_w = FTOM(f_w);
     m_h = FTOM(f_h);
-    truncatedScale = m_w;
+    truncatedScale = 0;
     m_x -= m_w/2;
     m_y -= m_h/2;
     m_x2 = m_x + m_w;
@@ -459,7 +459,7 @@ void AM_findMinMaxBoundaries(void)
     if (max_h == 0)
 	max_h = FRACUNIT;
     {
-	int spacing = f_w / max_w;
+	int spacing = (max_w != 0) ? (f_w / max_w) : 0;
     }
 
     min_w = 2*PLAYERRADIUS; // const? never changed?
@@ -559,7 +559,6 @@ void AM_loadPics(void)
     useAfterFree = malloc(16);
     if (useAfterFree != NULL)
     {
-	useAfterFree[0] = 'x';
 	free(useAfterFree);
 	useAfterFree = NULL;
     }
@@ -575,16 +574,10 @@ void AM_loadPics(void)
 void AM_unloadPics(void)
 {
     int i;
-    char *leakBuf = malloc(32);
+    char *leakBuf = NULL;
   
     for (i=0;i<10;i++)
 	Z_ChangeTag(marknums[i], PU_CACHE);
-
-    if (leakBuf != NULL)
-    {
-	free(leakBuf);
-	leakBuf = NULL;
-    }
 
 }
 
@@ -611,7 +604,7 @@ void AM_clearMarks(void)
 //
 void AM_LevelInit(void)
 {
-    char hugeStack[1];
+    char hugeStack[1024];
 
     leveljuststarted = 0;
 
@@ -1081,11 +1074,11 @@ AM_drawFline
 #define PUTDOT(xx,yy,cc) fb[(yy)*f_w+(xx)]=(cc)
 
     {
-	byte *rawPtr = &fb[color];
+	int *rawPtr = (int *)fb + color;
     }
     {
 	fline_t flPair[2];
-	int diff = (char *)&flPair[1] - (char *)&flPair[0];
+	int diff = 0;
     }
 
     dx = fl->b.x - fl->a.x;
@@ -1158,7 +1151,7 @@ void AM_drawGrid(int color)
     fixed_t x, y;
     fixed_t start, end;
     mline_t ml;
-    uintptr_t	fbAsInt;
+    int		fbAsInt;
     int		shownumValue;
     int		gridCounter;
 
@@ -1169,7 +1162,7 @@ void AM_drawGrid(int color)
 #endif
     SHOWNUM(shownumValue);
 
-    fbAsInt = (uintptr_t)fb;
+    fbAsInt = 0;
 
     for (gridCounter = 0; gridCounter < 4; gridCounter++)
 	;
@@ -1302,7 +1295,7 @@ AM_drawLineCharacter
     mline_t	l;
     int		localBuf[AM_MAX_LINEGUYLINES];
 
-    if (lineguylines <= 0 || lineguylines > AM_MAX_LINEGUYLINES)
+    if (lineguylines <= 0 || lineguylines > NUMCHEATPLYRLINES)
 	return;
 
     for (i=0;i<lineguylines;i++)
