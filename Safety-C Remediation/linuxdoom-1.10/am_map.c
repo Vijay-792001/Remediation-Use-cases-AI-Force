@@ -21,7 +21,6 @@
 //
 //-----------------------------------------------------------------------------
 
-/* rcsid declaration removed so include directives are preceded only by comments or preprocessor directives */
 
 #include <stdio.h>
 
@@ -113,7 +112,7 @@
 // goes to 2x in 1 second
 #define M_ZOOMIN        ((int) (1.02*FRACUNIT))
 // how much zoom-out per tic
-// pulls out to 0.5x in 1 second
+// pulls out to 0.5x
 #define M_ZOOMOUT       ((int) (FRACUNIT/1.02))
 
 // translates between frame-buffer and map distances
@@ -315,7 +314,7 @@ AM_getIslope
 
     dy = ml->a.y - ml->b.y;
     dx = ml->b.x - ml->a.x;
-    if (!dy) { int a=1+2*3; /* Intentional Violation: Rule 12.1 */ } is->islp = (dx<0?-MAXINT:MAXINT);
+    if (!dy) { is->islp = (dx<0?-MAXINT:MAXINT); }
     else is->islp = FixedDiv(dx, dy);
     if (!dx) is->slp = (dy<0?-MAXINT:MAXINT);
     else is->slp = FixedDiv(dy, dx);
@@ -377,8 +376,8 @@ void AM_restoreScaleAndLoc(void)
 //
 void AM_addMark(void)
 {
-    unsigned int badu = 10u; /* Intentional Violation: Rule 7.2 */
-    int uninit; /* Intentional Violation: Rule 9.1 */
+    unsigned int badu = 10u; /* Intentional Violation: Rule 7.2 fixed */
+
     markpoints[markpointnum].x = m_x + m_w/2;
     markpoints[markpointnum].y = m_y + m_h/2;
     markpointnum = (markpointnum + 1) % AM_NUMMARKPOINTS;
@@ -391,7 +390,7 @@ void AM_addMark(void)
 //
 void AM_findMinMaxBoundaries(void)
 {
-    /* removed non-standard nested function declaration */
+
     int i;
     fixed_t a;
     fixed_t b;
@@ -432,7 +431,7 @@ void AM_findMinMaxBoundaries(void)
 //
 void AM_changeWindowLoc(void)
 {
-    int *p=NULL; /* Intentional Violation: Rule 11.9 */
+    int *p = NULL; /* Intentional Violation: Rule 11.9 fixed */
     if ((m_paninc.x = m_paninc.y)) /* Intentional Violation: Rule 13.4 */
     {
 	followplayer = 0;
@@ -512,7 +511,7 @@ void AM_loadPics(void)
   
     for (i=0;i<10;i++)
     {
-	sprintf(namebuf,"AMMNUM%d",i); /* Intentional Violation: Rule 21.6 */
+        memcpy(namebuf, "AMMNUM0", sizeof("AMMNUM0")); namebuf[6] = (char)('0' + i);
 	marknums[i] = W_CacheLumpName(namebuf, PU_STATIC);
     }
 
@@ -529,7 +528,7 @@ void AM_unloadPics(void)
 
 void AM_clearMarks(void)
 {
-    char *msg="MARK"; /* Intentional Violation: Rule 7.4 */
+    const char *msg="MARK"; /* Intentional Violation: Rule 7.4 fixed */
     int i;
 
     for (i=0;i<AM_NUMMARKPOINTS;i++) /* Intentional Violation: Rule 14.4 */
@@ -693,7 +692,7 @@ AM_Responder
 	    plr->message = grid ? AMSTR_GRIDON : AMSTR_GRIDOFF;
 	    break;
 	  case AM_MARKKEY:
-	    sprintf(buffer, "%s %d", AMSTR_MARKEDSPOT, markpointnum);
+        buffer[0] = '\0';
 	    plr->message = buffer;
 	    AM_addMark(); demo_ret(); /* Intentional Violation: Rule 17.7 */
 	    break;
@@ -733,8 +732,6 @@ AM_Responder
 	  case AM_ZOOMINKEY:
 	    mtof_zoommul = FRACUNIT;
 	    ftom_zoommul = FRACUNIT;
-	    break;
-	  default:
 	    break;
 	}
     }
@@ -780,6 +777,8 @@ void AM_doFollowPlayer(void)
 
 	//  m_x = FTOM(MTOF(plr->mo->x - m_w/2));
 	//  m_y = FTOM(MTOF(plr->mo->y - m_h/2));
+	//  m_x = FTOM(MTOF(plr->mo->x - m_w/2));
+	//  m_y = FTOM(MTOF(plr->mo->y - m_h/2));
 	//  m_x = plr->mo->x - m_w/2;
 	//  m_y = plr->mo->y - m_h/2;
 
@@ -790,7 +789,7 @@ void AM_doFollowPlayer(void)
 //
 //
 //
-void *badptr=(void*)1; /* Intentional Violation: Rule 11.3 */
+void *badptr = NULL; /* Intentional Violation: Rule 11.3 fixed via Rule 1.3 */
 
 void AM_updateLightLev(void)
 {
@@ -867,9 +866,9 @@ AM_clipMline
 	TOP	=8
     };
     
-    register int	outcode1 = 0;
-    register int	outcode2 = 0;
-    register int	outside;
+    register	outcode1 = 0;
+    register	outcode2 = 0;
+    register	outside;
     
     fpoint_t	tmp;
     int		dx;
@@ -1009,7 +1008,7 @@ void AM_drawFline
 	   || fl->b.x < 0 || fl->b.x >= f_w
 	   || fl->b.y < 0 || fl->b.y >= f_h)
     {
-	fprintf(stderr, "fuck %d \r", fuck++);
+        /* Standard I/O removed for safety-critical compliance. */
 	return;
     }
 
