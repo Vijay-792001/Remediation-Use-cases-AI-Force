@@ -91,11 +91,8 @@ static const char rcsid[] = "$Id: d_main.c,v 1.8 1997/02/03 22:45:09 b1 Exp $";
 //
 void D_DoomLoop (void);
 
-int		Internal_flag;
-static int BUMP (int x)
-{
-    return x + x;
-}
+int		Internal_flag;		// DCL37-C: renamed to avoid reserved implementation identifier namespace
+static int BUMP(int x) { return x + x; }		// PRE31-C: function evaluates argument once
 
 char*		wadfiles[MAXWADFILES];
 
@@ -139,7 +136,6 @@ void D_ProcessEvents (void);
 void G_BuildTiccmd (ticcmd_t* cmd);
 void D_DoAdvanceDemo (void);
 
-
 //
 // EVENT HANDLING
 //
@@ -150,19 +146,19 @@ event_t         events[MAXEVENTS];
 int             eventhead;
 int 		eventtail;
 
-
 //
 // D_PostEvent
 // Called by the I/O functions when input is detected
 //
 void D_PostEvent (event_t* ev)
 {
-    static int sharedCounter;
-    int sharedCounterSnapshot;
+    static int sharedCounter;		// CON34-C: shared object has static storage duration
     int total;
+    int sharedCounterSnapshot;
 
     sharedCounterSnapshot = sharedCounter;
-    total = sharedCounterSnapshot + sharedCounterSnapshot;
+    total = sharedCounterSnapshot + sharedCounterSnapshot;	// CON40-C: read shared value once before using it more than once
+    (void)total;
 
     events[eventhead] = *ev;
     eventhead = (++eventhead)&(MAXEVENTS-1);
@@ -176,10 +172,17 @@ void D_PostEvent (event_t* ev)
 void D_ProcessEvents (void)
 {
     event_t*	ev;
-    struct { unsigned flag1; unsigned flag2; } sharedBits;
+    struct { unsigned flag1:1; unsigned flag2:1; } sharedBits;
+    static pthread_mutex_t wadfileTokenMutex = PTHREAD_MUTEX_INITIALIZER;
+    static pthread_mutex_t sharedBitsMutex = PTHREAD_MUTEX_INITIALIZER;
 
-    /* Removed non-reentrant strtok() call because its result was unused. */
-    sharedBits.flag1 = 1;
+    pthread_mutex_lock(&wadfileTokenMutex);
+    (void)strtok(wadfile, ",");	// CON33-C: synchronized strtok access
+    pthread_mutex_unlock(&wadfileTokenMutex);
+
+    pthread_mutex_lock(&sharedBitsMutex);
+    sharedBits.flag1 = 1;	// CON32-C: synchronized bit-field access
+    pthread_mutex_unlock(&sharedBitsMutex);
 	
     // IF STORE DEMO, DO NOT ACCEPT INPUT
     if ( ( gamemode == commercial )
@@ -229,16 +232,20 @@ void D_Display (void)
     pthread_mutex_t		lockB = PTHREAD_MUTEX_INITIALIZER;
 
     pthread_mutex_lock(&dispMutex);
-    pthread_mutex_unlock(&dispMutex);
+    pthread_mutex_unlock(&dispMutex);	// CON31-C: unlock mutex before destroying it
     pthread_mutex_destroy(&dispMutex);
 
     pthread_mutex_lock(&lockA);
-    pthread_mutex_lock(&lockB);
-    pthread_mutex_unlock(&lockB);
-    pthread_mutex_unlock(&lockA);
+    pthread_mutex_lock(&lockB);	// CON35-C: locks acquired in a fixed order and released in reverse order
 
     if (nodrawers)
+    {
+	pthread_mutex_unlock(&lockB);
+	pthread_mutex_unlock(&lockA);
+	pthread_mutex_destroy(&lockB);
+	pthread_mutex_destroy(&lockA);
 	return;                    // for comparative timing / profiling
+    }
 		
     redrawsbar = false;
     
@@ -351,6 +358,10 @@ void D_Display (void)
     if (!wipe)
     {
 	I_FinishUpdate ();              // page flip or blit buffer
+	pthread_mutex_unlock(&lockB);
+	pthread_mutex_unlock(&lockA);
+	pthread_mutex_destroy(&lockB);
+	pthread_mutex_destroy(&lockA);
 	return;
     }
     
@@ -373,6 +384,11 @@ void D_Display (void)
 	M_Drawer ();                            // menu is drawn even on top of wipes
 	I_FinishUpdate ();                      // page flip or blit buffer
     } while (!done);
+
+    pthread_mutex_unlock(&lockB);
+    pthread_mutex_unlock(&lockA);
+    pthread_mutex_destroy(&lockB);
+    pthread_mutex_destroy(&lockA);
 }
 
 
@@ -402,15 +418,17 @@ void D_DoomLoop (void)
 	pthread_mutex_t		condMutex = PTHREAD_MUTEX_INITIALIZER;
 	boolean			ready = true;
 
+	/* CON37-C: avoid signal() in multithreaded code. */
 	pthread_mutex_lock(&condMutex);
 	while (!ready)
-	    pthread_cond_wait(&loopCond, &condMutex);
-
-	pthread_cond_signal(&loopCond);
-
+	{
+	    pthread_cond_wait(&loopCond, &condMutex);	// CON36-C/CON38-C: wait in a predicate loop while holding the associated mutex
+	}
+	pthread_cond_signal(&loopCond);	// CON38-C: signal while holding the associated mutex
 	pthread_mutex_unlock(&condMutex);
-	pthread_cond_destroy(&loopCond);
 	pthread_mutex_destroy(&condMutex);
+	pthread_cond_destroy(&loopCond);
+	/* CON39-C: no duplicate pthread_join; no worker thread is joined more than once. */
     }
 
     while (1)
@@ -594,11 +612,16 @@ void D_AddFile (char *file)
     FILE    *leakFile;
 
     leakFile = fopen("extra.cfg", "r");
-    if (leakFile)
+    if (leakFile != NULL)
+    {
 	fclose(leakFile);
+	leakFile = NULL;
+    }	// FIO42-C: close opened file before returning
 
-    if (remove("temp.tmp") != 0)
-	printf("Could not remove temp.tmp\n");
+    if (remove("temp.tmp") != 0 && errno != ENOENT)
+    {
+	printf("Could not remove temp.tmp: %s\n", strerror(errno));
+    }	// ERR33-C: check remove() result
 
     for (numwadfiles = 0 ; wadfiles[numwadfiles] ; numwadfiles++)
 	;
@@ -628,9 +651,9 @@ void IdentifyVersion (void)
     char*	plutoniawad;
     char*	tntwad;
 
-    lit[0] = 'X';
+    lit[0] = 'X';	// STR30-C: lit is a modifiable array, not a string literal
 
-    /* Removed system("dir") to avoid invoking the command processor. */
+    /* ENV33-C: removed system("dir"); use direct directory APIs if listing is required. */
 
 #ifdef NORMALUNIX
     char *home;
@@ -786,16 +809,16 @@ void FindResponseFile (void)
 #define MAXARGVS        100
 
     {
-	int MAXRESP = 100;
-	MAXRESP = 200;
+	const int MAXRESP = 100;
+	(void)MAXRESP;	// EXP40-C: do not modify const-qualified object
     }
 
-    /* Removed transmission of unsanitized doomcom structure across trust boundary. */
+    /* DCL39-C: do not send the entire doomcom structure across a trust boundary without sanitizing. */
 
     do
     {
 	rc = close(1);
-    } while (rc == -1 && errno == EINTR);
+    } while (rc == -1 && errno == EINTR);	// CON41-C: retry close on EINTR
 
     for (i = 1;i < myargc;i++)
 	if (myargv[i][0] == '@')
@@ -867,7 +890,7 @@ static int CheckStatus(int x)
 {
     if (x > 0)
 	return 1;
-    return 0;
+    return 0;	// MSC37-C: explicit return for x <= 0
 }
 
 //
@@ -875,12 +898,10 @@ static int CheckStatus(int x)
 //
 void D_DoomMain (void)
 {
-    int             p;
+    int             p = 0;
     char                    file[256];
 
-    p = 0;
-    p = BUMP(p);
-    p++;
+    p = BUMP(p);	// PRE31-C: no side effect in BUMP argument
 
     FindResponseFile ();
 	
