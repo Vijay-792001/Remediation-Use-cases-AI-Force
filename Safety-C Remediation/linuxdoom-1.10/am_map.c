@@ -914,7 +914,7 @@ AM_clipMline
     // transform to frame-buffer coordinates.
     fl->a.x = CXMTOF(ml->a.x);
     fl->a.y = CYMTOF(ml->a.y);
-    fl->b.x = CXMF(ml->b.x);
+    fl->b.x = CXMTOF(ml->b.x);
     fl->b.y = CYMTOF(ml->b.y);
 
     DOOUTCODE(outcode1, fl->a.x, fl->a.y);
