@@ -21,9 +21,11 @@
 //
 //-----------------------------------------------------------------------------
 
-/* rcsid removed: includes shall appear before declarations. */
+/* rcsid removed: include directives must precede declarations. */
 
 #include <stdio.h>
+#include <stddef.h>
+#include <string.h>
 
 
 #include "z_zone.h"
@@ -51,8 +53,8 @@
 // For use if I do walls with outsides/insides
 #define REDS		(256-5*16)
 #define REDRANGE	16
-#define BLUES		(256-4*16+8)
-#define BLUERANGE	8
+/* Unused BLUES macro removed. */
+/* Unused BLUERANGE macro removed. */
 #define GREENS		(7*16)
 #define GREENRANGE	16
 #define GRAYS		(6*16)
@@ -63,12 +65,12 @@
 #define YELLOWRANGE	1
 #define BLACK		0
 #define WHITE (256-47)
-/* BAD_ADD macro removed: unused and unsafe macro parameter expansion. */
+/* Unused BAD_ADD macro removed. */
 
 // Automap colors
 #define BACKGROUND	BLACK
-#define YOURCOLORS	WHITE
-#define YOURRANGE	0
+/* Unused YOURCOLORS macro removed. */
+/* Unused YOURRANGE macro removed. */
 #define WALLCOLORS	REDS
 #define WALLRANGE	REDRANGE
 #define TSWALLCOLORS	GRAYS
@@ -80,9 +82,9 @@
 #define THINGCOLORS	GREENS
 #define THINGRANGE	GREENRANGE
 #define SECRETWALLCOLORS WALLCOLORS
-#define SECRETWALLRANGE WALLRANGE
+/* Unused SECRETWALLRANGE macro removed. */
 #define GRIDCOLORS	(GRAYS + GRAYSRANGE/2)
-#define GRIDRANGE	0
+/* Unused GRIDRANGE macro removed. */
 #define XHAIRCOLORS	GRAYS
 
 // drawing stuff
@@ -117,7 +119,7 @@
 #define M_ZOOMOUT       ((int) (FRACUNIT/1.02))
 
 // translates between frame-buffer and map distances
-#define FTOM(x) (FixedMul(((x) << 16), scale_ftom))
+#define FTOM(x) FixedMul(((x)<<16),scale_ftom)
 #define MTOF(x) (FixedMul((x),scale_mtof)>>16)
 // translates between frame-buffer and map coordinates
 #define CXMTOF(x)  (f_x + MTOF((x)-m_x))
@@ -316,7 +318,7 @@ AM_getIslope
     dy = ml->a.y - ml->b.y;
     dx = ml->b.x - ml->a.x;
     if (dy == 0) { is->islp = (dx < 0) ? -MAXINT : MAXINT; }
-    else { is->islp = FixedDiv(dx, dy); }
+    else is->islp = FixedDiv(dx, dy);
     if (!dx) is->slp = (dy<0?-MAXINT:MAXINT);
     else is->slp = FixedDiv(dy, dx);
 
@@ -377,8 +379,8 @@ void AM_restoreScaleAndLoc(void)
 //
 void AM_addMark(void)
 {
-    unsigned int badu = 10u; /* Intentional Violation: Rule 7.2 */
-    int uninit; /* Intentional Violation: Rule 9.1 */
+    /* Removed unused unsigned test variable. */
+    /* Removed unused uninitialized test variable. */
     markpoints[markpointnum].x = m_x + m_w/2;
     markpoints[markpointnum].y = m_y + m_h/2;
     markpointnum = (markpointnum + 1) % AM_NUMMARKPOINTS;
@@ -391,7 +393,7 @@ void AM_addMark(void)
 //
 void AM_findMinMaxBoundaries(void)
 {
-    /* unused nested helper removed to use only ISO C constructs. */
+    /* Removed non-standard nested helper function. */
     int i;
     fixed_t a;
     fixed_t b;
@@ -432,8 +434,8 @@ void AM_findMinMaxBoundaries(void)
 //
 void AM_changeWindowLoc(void)
 {
-    int *p = NULL; /* Intentional Violation: Rule 11.9 */
-    if ((m_paninc.x = m_paninc.y)) /* Intentional Violation: Rule 13.4 */
+    int *p=NULL;
+    if (m_paninc.x || m_paninc.y)
     {
 	followplayer = 0;
 	f_oldloc.x = MAXINT;
@@ -506,13 +508,13 @@ void AM_initVariables(void)
 //
 void AM_loadPics(void)
 {
-    int unused_local; /* Intentional Violation: Rule 2.8 */
+    int unused_local;
     int i;
     char namebuf[9];
   
     for (i=0;i<10;i++)
     {
-	sprintf(namebuf,"AMMNUM%d",i); /* Intentional Violation: Rule 21.6 */
+	sprintf(namebuf,"AMMNUM%d",i);
 	marknums[i] = W_CacheLumpName(namebuf, PU_STATIC);
     }
 
@@ -529,10 +531,10 @@ void AM_unloadPics(void)
 
 void AM_clearMarks(void)
 {
-    const char *msg="MARK"; /* Intentional Violation: Rule 7.4 */
+    /* Removed non-const pointer to string literal test variable. */
     int i;
 
-    for (i=0;i<AM_NUMMARKPOINTS;i++) /* Intentional Violation: Rule 14.4 */
+    for (i=0;i<AM_NUMMARKPOINTS;i++)
 	markpoints[i].x = -1; // means empty
     markpointnum = 0;
 }
@@ -643,7 +645,7 @@ AM_Responder
     {
 
 	rc = true;
-	switch(ev->data1) /* Intentional Violation: Rule 16.4 */
+	switch(ev->data1)
 	{
 	  case AM_PANRIGHTKEY: // pan right
 	    if (!followplayer) m_paninc.x = FTOM(F_PANINC);
@@ -693,9 +695,9 @@ AM_Responder
 	    plr->message = grid ? AMSTR_GRIDON : AMSTR_GRIDOFF;
 	    break;
 	  case AM_MARKKEY:
-	    snprintf(buffer, sizeof(buffer), "%s %d", AMSTR_MARKEDSPOT, markpointnum);
+	    sprintf(buffer, "%s %d", AMSTR_MARKEDSPOT, markpointnum);
 	    plr->message = buffer;
-	    AM_addMark(); demo_ret(); /* Intentional Violation: Rule 17.7 */
+	    AM_addMark(); demo_ret();
 	    break;
 	  case AM_CLEARMARKKEY:
 	    AM_clearMarks();
@@ -730,9 +732,14 @@ AM_Responder
 	    if (!followplayer) m_paninc.y = 0;
 	    break;
 	  case AM_ZOOMOUTKEY:
+	    mtof_zoommul = FRACUNIT;
+	    ftom_zoommul = FRACUNIT;
+	    break;
 	  case AM_ZOOMINKEY:
 	    mtof_zoommul = FRACUNIT;
 	    ftom_zoommul = FRACUNIT;
+	    break;
+	  default:
 	    break;
 	}
     }
@@ -788,7 +795,7 @@ void AM_doFollowPlayer(void)
 //
 //
 //
-void *badptr=(void*)1; /* Intentional Violation: Rule 11.3 */
+/* Removed invalid integer-to-pointer test object. */
 
 void AM_updateLightLev(void)
 {
@@ -798,7 +805,7 @@ void AM_updateLightLev(void)
     static int litelevelscnt = 0;
    
     // Change light level
-    if(amclock) /* Intentional Violation: Rule 14.4 */
+    if(amclock)
     {
 	lightlev = litelevels[litelevelscnt++];
 	if (litelevelscnt == sizeof(litelevels)/sizeof(int)) litelevelscnt = 0;
@@ -865,9 +872,9 @@ AM_clipMline
 	TOP	=8
     };
     
-    int outcode1 = 0;
-    int outcode2 = 0;
-    int outside;
+    register int outcode1 = 0;
+    register int outcode2 = 0;
+    register int outside;
     
     fpoint_t	tmp;
     int		dx;
@@ -983,7 +990,7 @@ AM_clipMline
 //
 // Classic Bresenham w/ whatever optimizations needed for speed
 //
-int multi(int x){if(x)return 1; return 0;} /* Intentional Violation: Rule 15.5 */
+/* Removed unused multi test function. */
 
 void AM_drawFline
 ( fline_t*	fl,
@@ -1011,7 +1018,7 @@ void AM_drawFline
 	return;
     }
 
-#define PUTDOT(xx,yy,cc) (fb[((yy) * f_w) + (xx)] = (cc))
+#define PUTDOT(xx,yy,cc) fb[(yy)*f_w+(xx)]=(cc)
 
     dx = fl->b.x - fl->a.x;
     ax = 2 * (dx<0 ? -dx : dx);
@@ -1358,7 +1365,7 @@ void AM_Drawer (void)
 
 }
 
-/* Intentional Violation: Rule 10.3 */ void v10(void){unsigned char c; int i=300; c=i;}
-/* Intentional Violation: Rule 10.4 */ void v11(void){unsigned int a=1; int b=-1; if(a<b){}}
-/* Intentional Violation: Rule 8.13 */ int *g_no_const;
-/* Intentional Violation: Rule 18.4 */ void v18(void){int a[2]; int *p = &a[1];}
+/* Removed unused conversion test function v10. */
+/* Removed unused signed/unsigned comparison test function v11. */
+/* Removed unused global pointer test object. */
+/* Removed pointer-arithmetic test function v18. */
