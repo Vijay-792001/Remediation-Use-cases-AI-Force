@@ -23,7 +23,6 @@
 
 /* rcsid removed: include directives must precede declarations. */
 
-#include <stdio.h>
 #include <stddef.h>
 #include <string.h>
 
@@ -74,11 +73,11 @@
 #define WALLCOLORS	REDS
 #define WALLRANGE	REDRANGE
 #define TSWALLCOLORS	GRAYS
-#define TSWALLRANGE	GRAYSRANGE
+/* Unused TSWALLRANGE macro removed. */
 #define FDWALLCOLORS	BROWNS
-#define FDWALLRANGE	BROWNRANGE
+/* Unused FDWALLRANGE macro removed. */
 #define CDWALLCOLORS	YELLOWS
-#define CDWALLRANGE	YELLOWRANGE
+/* Unused CDWALLRANGE macro removed. */
 #define THINGCOLORS	GREENS
 #define THINGRANGE	GREENRANGE
 #define SECRETWALLCOLORS WALLCOLORS
@@ -160,57 +159,53 @@ typedef struct
 //  A line drawing of the player pointing right,
 //   starting from the middle.
 //
-#define R ((8*PLAYERRADIUS)/7)
+#define PLAYER_ARROW_R ((8*PLAYERRADIUS)/7)
 mline_t player_arrow[] = {
-    { { -R+R/8, 0 }, { R, 0 } }, // -----
-    { { R, 0 }, { R-R/2, R/4 } },  // ----->
-    { { R, 0 }, { R-R/2, -R/4 } },
-    { { -R+R/8, 0 }, { -R-R/8, R/4 } }, // >---->
-    { { -R+R/8, 0 }, { -R-R/8, -R/4 } },
-    { { -R+3*R/8, 0 }, { -R+R/8, R/4 } }, // >>--->
-    { { -R+3*R/8, 0 }, { -R+R/8, -R/4 } }
+    { { -PLAYER_ARROW_R+PLAYER_ARROW_R/8, 0 }, { PLAYER_ARROW_R, 0 } }, // -----
+    { { PLAYER_ARROW_R, 0 }, { PLAYER_ARROW_R-PLAYER_ARROW_R/2, PLAYER_ARROW_R/4 } },  // ----->
+    { { PLAYER_ARROW_R, 0 }, { PLAYER_ARROW_R-PLAYER_ARROW_R/2, -PLAYER_ARROW_R/4 } },
+    { { -PLAYER_ARROW_R+PLAYER_ARROW_R/8, 0 }, { -PLAYER_ARROW_R-PLAYER_ARROW_R/8, PLAYER_ARROW_R/4 } }, // >---->
+    { { -PLAYER_ARROW_R+PLAYER_ARROW_R/8, 0 }, { -PLAYER_ARROW_R-PLAYER_ARROW_R/8, -PLAYER_ARROW_R/4 } },
+    { { -PLAYER_ARROW_R+3*PLAYER_ARROW_R/8, 0 }, { -PLAYER_ARROW_R+PLAYER_ARROW_R/8, PLAYER_ARROW_R/4 } }, // >>--->
+    { { -PLAYER_ARROW_R+3*PLAYER_ARROW_R/8, 0 }, { -PLAYER_ARROW_R+PLAYER_ARROW_R/8, -PLAYER_ARROW_R/4 } }
 };
-#undef R
 #define NUMPLYRLINES (sizeof(player_arrow)/sizeof(mline_t))
 
-#define R ((8*PLAYERRADIUS)/7)
+#define CHEAT_PLAYER_ARROW_R ((8*PLAYERRADIUS)/7)
 mline_t cheat_player_arrow[] = {
-    { { -R+R/8, 0 }, { R, 0 } }, // -----
-    { { R, 0 }, { R-R/2, R/6 } },  // ----->
-    { { R, 0 }, { R-R/2, -R/6 } },
-    { { -R+R/8, 0 }, { -R-R/8, R/6 } }, // >----->
-    { { -R+R/8, 0 }, { -R-R/8, -R/6 } },
-    { { -R+3*R/8, 0 }, { -R+R/8, R/6 } }, // >>----->
-    { { -R+3*R/8, 0 }, { -R+R/8, -R/6 } },
-    { { -R/2, 0 }, { -R/2, -R/6 } }, // >>-d--->
-    { { -R/2, -R/6 }, { -R/2+R/6, -R/6 } },
-    { { -R/2+R/6, -R/6 }, { -R/2+R/6, R/4 } },
-    { { -R/6, 0 }, { -R/6, -R/6 } }, // >>-dd-->
-    { { -R/6, -R/6 }, { 0, -R/6 } },
-    { { 0, -R/6 }, { 0, R/4 } },
-    { { R/6, R/4 }, { R/6, -R/7 } }, // >>-ddt->
-    { { R/6, -R/7 }, { R/6+R/32, -R/7-R/32 } },
-    { { R/6+R/32, -R/7-R/32 }, { R/6+R/10, -R/7 } }
+    { { -CHEAT_PLAYER_ARROW_R+CHEAT_PLAYER_ARROW_R/8, 0 }, { CHEAT_PLAYER_ARROW_R, 0 } }, // -----
+    { { CHEAT_PLAYER_ARROW_R, 0 }, { CHEAT_PLAYER_ARROW_R-CHEAT_PLAYER_ARROW_R/2, CHEAT_PLAYER_ARROW_R/6 } },  // ----->
+    { { CHEAT_PLAYER_ARROW_R, 0 }, { CHEAT_PLAYER_ARROW_R-CHEAT_PLAYER_ARROW_R/2, -CHEAT_PLAYER_ARROW_R/6 } },
+    { { -CHEAT_PLAYER_ARROW_R+CHEAT_PLAYER_ARROW_R/8, 0 }, { -CHEAT_PLAYER_ARROW_R-CHEAT_PLAYER_ARROW_R/8, CHEAT_PLAYER_ARROW_R/6 } }, // >----->
+    { { -CHEAT_PLAYER_ARROW_R+CHEAT_PLAYER_ARROW_R/8, 0 }, { -CHEAT_PLAYER_ARROW_R-CHEAT_PLAYER_ARROW_R/8, -CHEAT_PLAYER_ARROW_R/6 } },
+    { { -CHEAT_PLAYER_ARROW_R+3*CHEAT_PLAYER_ARROW_R/8, 0 }, { -CHEAT_PLAYER_ARROW_R+CHEAT_PLAYER_ARROW_R/8, CHEAT_PLAYER_ARROW_R/6 } }, // >>----->
+    { { -CHEAT_PLAYER_ARROW_R+3*CHEAT_PLAYER_ARROW_R/8, 0 }, { -CHEAT_PLAYER_ARROW_R+CHEAT_PLAYER_ARROW_R/8, -CHEAT_PLAYER_ARROW_R/6 } },
+    { { -CHEAT_PLAYER_ARROW_R/2, 0 }, { -CHEAT_PLAYER_ARROW_R/2, -CHEAT_PLAYER_ARROW_R/6 } }, // >>-d--->
+    { { -CHEAT_PLAYER_ARROW_R/2, -CHEAT_PLAYER_ARROW_R/6 }, { -CHEAT_PLAYER_ARROW_R/2+CHEAT_PLAYER_ARROW_R/6, -CHEAT_PLAYER_ARROW_R/6 } },
+    { { -CHEAT_PLAYER_ARROW_R/2+CHEAT_PLAYER_ARROW_R/6, -CHEAT_PLAYER_ARROW_R/6 }, { -CHEAT_PLAYER_ARROW_R/2+CHEAT_PLAYER_ARROW_R/6, CHEAT_PLAYER_ARROW_R/4 } },
+    { { -CHEAT_PLAYER_ARROW_R/6, 0 }, { -CHEAT_PLAYER_ARROW_R/6, -CHEAT_PLAYER_ARROW_R/6 } }, // >>-dd-->
+    { { -CHEAT_PLAYER_ARROW_R/6, -CHEAT_PLAYER_ARROW_R/6 }, { 0, -CHEAT_PLAYER_ARROW_R/6 } },
+    { { 0, -CHEAT_PLAYER_ARROW_R/6 }, { 0, CHEAT_PLAYER_ARROW_R/4 } },
+    { { CHEAT_PLAYER_ARROW_R/6, CHEAT_PLAYER_ARROW_R/4 }, { CHEAT_PLAYER_ARROW_R/6, -CHEAT_PLAYER_ARROW_R/7 } }, // >>-ddt->
+    { { CHEAT_PLAYER_ARROW_R/6, -CHEAT_PLAYER_ARROW_R/7 }, { CHEAT_PLAYER_ARROW_R/6+CHEAT_PLAYER_ARROW_R/32, -CHEAT_PLAYER_ARROW_R/7-CHEAT_PLAYER_ARROW_R/32 } },
+    { { CHEAT_PLAYER_ARROW_R/6+CHEAT_PLAYER_ARROW_R/32, -CHEAT_PLAYER_ARROW_R/7-CHEAT_PLAYER_ARROW_R/32 }, { CHEAT_PLAYER_ARROW_R/6+CHEAT_PLAYER_ARROW_R/10, -CHEAT_PLAYER_ARROW_R/7 } }
 };
-#undef R
 #define NUMCHEATPLYRLINES (sizeof(cheat_player_arrow)/sizeof(mline_t))
 
-#define R (FRACUNIT)
+#define TRIANGLE_GUY_R (FRACUNIT)
 mline_t triangle_guy[] = {
-    { { -.867*R, -.5*R }, { .867*R, -.5*R } },
-    { { .867*R, -.5*R } , { 0, R } },
-    { { 0, R }, { -.867*R, -.5*R } }
+    { { -.867*TRIANGLE_GUY_R, -.5*TRIANGLE_GUY_R }, { .867*TRIANGLE_GUY_R, -.5*TRIANGLE_GUY_R } },
+    { { .867*TRIANGLE_GUY_R, -.5*TRIANGLE_GUY_R } , { 0, TRIANGLE_GUY_R } },
+    { { 0, TRIANGLE_GUY_R }, { -.867*TRIANGLE_GUY_R, -.5*TRIANGLE_GUY_R } }
 };
-#undef R
-#define NUMTRIANGLEGUYLINES (sizeof(triangle_guy)/sizeof(mline_t))
+/* Unused NUMTRIANGLEGUYLINES macro removed. */
 
-#define R (FRACUNIT)
+#define THINTRIANGLE_GUY_R (FRACUNIT)
 mline_t thintriangle_guy[] = {
-    { { -.5*R, -.7*R }, { R, 0 } },
-    { { R, 0 }, { -.5*R, .7*R } },
-    { { -.5*R, .7*R }, { -.5*R, -.7*R } }
+    { { -.5*THINTRIANGLE_GUY_R, -.7*THINTRIANGLE_GUY_R }, { THINTRIANGLE_GUY_R, 0 } },
+    { { THINTRIANGLE_GUY_R, 0 }, { -.5*THINTRIANGLE_GUY_R, .7*THINTRIANGLE_GUY_R } },
+    { { -.5*THINTRIANGLE_GUY_R, .7*THINTRIANGLE_GUY_R }, { -.5*THINTRIANGLE_GUY_R, -.7*THINTRIANGLE_GUY_R } }
 };
-#undef R
 #define NUMTHINTRIANGLEGUYLINES (sizeof(thintriangle_guy)/sizeof(mline_t))
 
 
@@ -287,7 +282,7 @@ static int markpointnum = 0; // next point to be assigned
 
 static int followplayer = 1; // specifies whether to follow the player around
 
-static unsigned char cheat_amap_seq[] = { 0xb2, 0x26, 0x26, 0x2e, 0xff };
+static unsigned char cheat_amap_seq[] = { 0xb2u, 0x26u, 0x26u, 0x2eu, 0xffu };
 static cheatseq_t cheat_amap = { cheat_amap_seq, 0 };
 
 static boolean stopped = true;
@@ -319,9 +314,34 @@ AM_getIslope
     dx = ml->b.x - ml->a.x;
     if (dy == 0) { is->islp = (dx < 0) ? -MAXINT : MAXINT; }
     else is->islp = FixedDiv(dx, dy);
-    if (!dx) is->slp = (dy<0?-MAXINT:MAXINT);
+    if (dx == 0) is->slp = (dy < 0) ? -MAXINT : MAXINT;
     else is->slp = FixedDiv(dy, dx);
 
+}
+
+static void AM_formatMarkedSpot(char * buffer, int marker)
+{
+    const char * prefix;
+    int i;
+
+    prefix = AMSTR_MARKEDSPOT;
+    i = 0;
+    while ((prefix[i] != '\0') && (i < 17))
+    {
+        buffer[i] = prefix[i];
+        i++;
+    }
+    if (i < 17)
+    {
+        buffer[i] = ' ';
+        i++;
+    }
+    if (i < 19)
+    {
+        buffer[i] = (char)('0' + marker);
+        i++;
+    }
+    buffer[i] = '\0';
 }
 
 //
@@ -434,7 +454,7 @@ void AM_findMinMaxBoundaries(void)
 //
 void AM_changeWindowLoc(void)
 {
-    int *p=NULL;
+    /* Removed unused null pointer test variable. */
     if (m_paninc.x || m_paninc.y)
     {
 	followplayer = 0;
@@ -508,13 +528,19 @@ void AM_initVariables(void)
 //
 void AM_loadPics(void)
 {
-    int unused_local;
     int i;
     char namebuf[9];
   
     for (i=0;i<10;i++)
     {
-	sprintf(namebuf,"AMMNUM%d",i);
+	namebuf[0] = 'A';
+	namebuf[1] = 'M';
+	namebuf[2] = 'M';
+	namebuf[3] = 'N';
+	namebuf[4] = 'U';
+	namebuf[5] = 'M';
+	namebuf[6] = (char)('0' + i);
+	namebuf[7] = '\0';
 	marknums[i] = W_CacheLumpName(namebuf, PU_STATIC);
     }
 
@@ -695,9 +721,9 @@ AM_Responder
 	    plr->message = grid ? AMSTR_GRIDON : AMSTR_GRIDOFF;
 	    break;
 	  case AM_MARKKEY:
-	    sprintf(buffer, "%s %d", AMSTR_MARKEDSPOT, markpointnum);
+	    AM_formatMarkedSpot(buffer, markpointnum);
 	    plr->message = buffer;
-	    AM_addMark(); demo_ret();
+	    AM_addMark(); (void)demo_ret();
 	    break;
 	  case AM_CLEARMARKKEY:
 	    AM_clearMarks();
@@ -805,7 +831,7 @@ void AM_updateLightLev(void)
     static int litelevelscnt = 0;
    
     // Change light level
-    if(amclock)
+    if(amclock != 0)
     {
 	lightlev = litelevels[litelevelscnt++];
 	if (litelevelscnt == sizeof(litelevels)/sizeof(int)) litelevelscnt = 0;
@@ -1006,7 +1032,7 @@ void AM_drawFline
     register int ay;
     register int d;
     
-    static int fuck = 0;
+    /* Removed standard I/O debug counter. */
 
     // For debugging only
     if (      fl->a.x < 0 || fl->a.x >= f_w
@@ -1014,7 +1040,6 @@ void AM_drawFline
 	   || fl->b.x < 0 || fl->b.x >= f_w
 	   || fl->b.y < 0 || fl->b.y >= f_h)
     {
-	fprintf(stderr, "fuck %d \r", fuck++);
 	return;
     }
 
