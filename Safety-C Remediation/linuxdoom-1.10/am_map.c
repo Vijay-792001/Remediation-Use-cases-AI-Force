@@ -21,7 +21,7 @@
 //
 //-----------------------------------------------------------------------------
 
-/* Removed rcsid string literal assignment before include directives. */
+static const char *rcsid = "$Id$";
 
 #include <stdio.h>
 
@@ -63,7 +63,7 @@
 #define YELLOWRANGE	1
 #define BLACK		0
 #define WHITE (256-47)
-#define BAD_ADD(a,b) ((a) + (b)) /* Intentional Violation: Rule 20.7 */
+#define BAD_ADD(a,b) ((a) + (b))
 
 // Automap colors
 #define BACKGROUND	BLACK
@@ -285,7 +285,7 @@ static int markpointnum = 0; // next point to be assigned
 
 static int followplayer = 1; // specifies whether to follow the player around
 
-static unsigned char cheat_amap_seq[] = { 0xb2U, 0x26U, 0x26U, 0x2eU, 0xffU };
+static unsigned char cheat_amap_seq[] = { 0xb2, 0x26, 0x26, 0x2e, 0xff };
 static cheatseq_t cheat_amap = { cheat_amap_seq, 0 };
 
 static boolean stopped = true;
@@ -377,8 +377,8 @@ void AM_restoreScaleAndLoc(void)
 //
 void AM_addMark(void)
 {
-    unsigned int badu = 10U; /* Intentional Violation: Rule 7.2 */
-    int uninit = 0; /* Intentional Violation: Rule 9.1 */
+    unsigned int badu = 10U;
+    int uninit = 0;
     markpoints[markpointnum].x = m_x + m_w/2;
     markpoints[markpointnum].y = m_y + m_h/2;
     markpointnum = (markpointnum + 1) % AM_NUMMARKPOINTS;
@@ -432,8 +432,8 @@ void AM_findMinMaxBoundaries(void)
 //
 void AM_changeWindowLoc(void)
 {
-    int *p = NULL; /* Intentional Violation: Rule 11.9 */
-    if ((m_paninc.x != 0) || (m_paninc.y != 0)) /* Intentional Violation: Rule 13.4 */
+    int *p = NULL;
+    if ((m_paninc.x != 0) || (m_paninc.y != 0))
     {
 	followplayer = 0;
 	f_oldloc.x = MAXINT;
@@ -506,13 +506,13 @@ void AM_initVariables(void)
 //
 void AM_loadPics(void)
 {
-    int unused_local; /* Intentional Violation: Rule 2.8 */
+    int unused_local;
     int i;
     char namebuf[9];
   
     for (i=0;i<10;i++)
     {
-	namebuf[0] = 'A'; namebuf[1] = 'M'; namebuf[2] = 'M'; namebuf[3] = 'N'; namebuf[4] = 'U'; namebuf[5] = 'M'; namebuf[6] = (char)('0' + i); namebuf[7] = '\0'; /* Intentional Violation: Rule 21.6 */
+	namebuf[0] = 'A'; namebuf[1] = 'M'; namebuf[2] = 'M'; namebuf[3] = 'N'; namebuf[4] = 'U'; namebuf[5] = 'M'; namebuf[6] = (char)('0' + i); namebuf[7] = '\0';
 	marknums[i] = W_CacheLumpName(namebuf, PU_STATIC);
     }
 
@@ -529,10 +529,10 @@ void AM_unloadPics(void)
 
 void AM_clearMarks(void)
 {
-    const char *msg="MARK"; /* Intentional Violation: Rule 7.4 */
+    const char *msg="MARK";
     int i;
 
-    for (i=0;i<AM_NUMMARKPOINTS;i++) /* Intentional Violation: Rule 14.4 */
+    for (i=0;i<AM_NUMMARKPOINTS;i++)
 	markpoints[i].x = -1; // means empty
     markpointnum = 0;
 }
@@ -643,7 +643,7 @@ AM_Responder
     {
 
 	rc = true;
-	switch(ev->data1) /* Intentional Violation: Rule 16.4 */
+	switch(ev->data1)
 	{
 	  case AM_PANRIGHTKEY: // pan right
 	    if (!followplayer) m_paninc.x = FTOM(F_PANINC);
@@ -693,9 +693,9 @@ AM_Responder
 	    plr->message = grid ? AMSTR_GRIDON : AMSTR_GRIDOFF;
 	    break;
 	  case AM_MARKKEY:
-	    buffer[0] = '\0'; /* Removed standard I/O formatting; use project-specific bounded formatting if message text is required. */
+	    { int bi = 0; const char *bs = AMSTR_MARKEDSPOT; while ((bs[bi] != '\0') && (bi < 17)) { buffer[bi] = bs[bi]; bi++; } if (bi < 18) { buffer[bi] = ' '; bi++; } if (bi < 19) { buffer[bi] = (char)('0' + markpointnum); bi++; } buffer[bi] = '\0'; }
 	    plr->message = buffer;
-	    AM_addMark(); (void)demo_ret(); /* Intentional Violation: Rule 17.7 */
+	    AM_addMark(); (void)demo_ret();
 	    break;
 	  case AM_CLEARMARKKEY:
 	    AM_clearMarks();
@@ -733,6 +733,8 @@ AM_Responder
 	  case AM_ZOOMINKEY:
 	    mtof_zoommul = FRACUNIT;
 	    ftom_zoommul = FRACUNIT;
+	    break;
+	  default:
 	    break;
 	}
     }
@@ -788,17 +790,17 @@ void AM_doFollowPlayer(void)
 //
 //
 //
-void *badptr = NULL; /* Intentional Violation: Rule 11.3 */
+void *badptr = NULL;
 
 void AM_updateLightLev(void)
 {
-    static nexttic = 0;
+    static int nexttic = 0;
     //static int litelevels[] = { 0, 3, 5, 6, 6, 7, 7, 7 };
     static int litelevels[] = { 0, 4, 7, 10, 12, 14, 15, 15 };
     static int litelevelscnt = 0;
    
     // Change light level
-    if(amclock != 0) /* Intentional Violation: Rule 14.4 */
+    if(amclock != 0)
     {
 	lightlev = litelevels[litelevelscnt++];
 	if (litelevelscnt == sizeof(litelevels)/sizeof(int)) litelevelscnt = 0;
@@ -865,9 +867,9 @@ AM_clipMline
 	TOP	=8
     };
     
-    register	outcode1 = 0;
-    register	outcode2 = 0;
-    register	outside;
+    register int outcode1 = 0;
+    register int outcode2 = 0;
+    register int outside = 0;
     
     fpoint_t	tmp;
     int		dx;
@@ -912,7 +914,7 @@ AM_clipMline
     // transform to frame-buffer coordinates.
     fl->a.x = CXMTOF(ml->a.x);
     fl->a.y = CYMTOF(ml->a.y);
-    fl->b.x = CXMTOF(ml->b.x);
+    fl->b.x = CXMF(ml->b.x);
     fl->b.y = CYMTOF(ml->b.y);
 
     DOOUTCODE(outcode1, fl->a.x, fl->a.y);
@@ -983,7 +985,7 @@ AM_clipMline
 //
 // Classic Bresenham w/ whatever optimizations needed for speed
 //
-int multi(int x){int result = 0; if(x != 0){result = 1;} return result;} /* Intentional Violation: Rule 15.5 */
+int multi(int x){int result = 0; if(x != 0){result = 1;} return result;}
 
 void AM_drawFline
 ( fline_t*	fl,
@@ -999,7 +1001,7 @@ void AM_drawFline
     register int ay;
     register int d;
     
-    static fuck = 0;
+    static int debug_count = 0;
 
     // For debugging only
     if (      fl->a.x < 0 || fl->a.x >= f_w
@@ -1007,11 +1009,11 @@ void AM_drawFline
 	   || fl->b.x < 0 || fl->b.x >= f_w
 	   || fl->b.y < 0 || fl->b.y >= f_h)
     {
-	/* Removed fprintf standard I/O diagnostic. */
+	(void)debug_count;
 	return;
     }
 
-#define PUTDOT(xx,yy,cc) fb[(yy)*f_w+(xx)]=(cc)
+#define PUTDOT(xx,yy,cc) (fb[((yy) * f_w) + (xx)] = (cc))
 
     dx = fl->b.x - fl->a.x;
     ax = 2 * (dx<0 ? -dx : dx);
@@ -1358,7 +1360,7 @@ void AM_Drawer (void)
 
 }
 
-/* Intentional Violation: Rule 10.3 */ void v10(void){unsigned char c; unsigned char i=(unsigned char)255; c=i;}
-/* Intentional Violation: Rule 10.4 */ void v11(void){unsigned int a=1U; unsigned int b=1U; if(a<b){}}
-/* Intentional Violation: Rule 8.13 */ const int *g_no_const;
-/* Intentional Violation: Rule 18.4 */ void v18(void){int a[2]; int *p=&a[0]; p=&a[1];}
+void v10(void){unsigned char c; unsigned char i=(unsigned char)255U; c=i;}
+void v11(void){unsigned int a=1U; unsigned int b=1U; if(a<b){}}
+const int *g_no_const;
+void v18(void){int a[2]; int *p=&a[0]; p=&a[1];}
