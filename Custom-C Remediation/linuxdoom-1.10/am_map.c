@@ -86,7 +86,7 @@ static const char rcsid[] = "$Id: am_map.c,v 1.4 1997/02/03 21:24:33 b1 Exp $";
 
 // drawing stuff
 #define	FB		0
-#define AM_BORDER_PAD (4+2)
+#define AM_BORDER_PAD (4 + 2)
 
 static int	g_amRedrawCount;
 
@@ -152,6 +152,16 @@ typedef struct
 {
     fixed_t slp, islp;
 } islope_t;
+
+typedef struct
+{
+    int first_bound;
+    int second_bound;
+    int third_bound;
+    int fourth_bound;
+    int fifth_bound;
+    int sixth_bound;
+} am_bounds_config_t;
 
 
 
@@ -235,15 +245,7 @@ static int	f_h;
 
 static int 	lightlev; 		// used for funky strobing effect
 static byte*	fb; 			// pseudo-frame buffer
-static int 	amclock;
-
-static void AM_EnterClockCriticalSection(void)
-{
-}
-
-static void AM_ExitClockCriticalSection(void)
-{
-}
+static volatile int 	amclock;
 
 static mpoint_t m_paninc; // how far the window pans each tic (map coords)
 static fixed_t 	mtof_zoommul; // how far the window zooms in each tic (map coords)
@@ -342,13 +344,10 @@ AM_getIslope
 //
 void AM_activateNewScale(void)
 {
-    fixed_t	scale_width;
-
     m_x += m_w/2;
     m_y += m_h/2;
     m_w = FTOM(f_w);
     m_h = FTOM(f_h);
-    scale_width = m_w;
     m_x -= m_w/2;
     m_y -= m_h/2;
     m_x2 = m_x + m_w;
@@ -403,14 +402,13 @@ void AM_addMark(void)
 
 int AM_CountdownVerts(int n)
 {
-    if (n <= 0)
-	return 0;
     return 0;
 }
 
-void AM_ConfigureBounds(const int bounds[6])
+void AM_ConfigureBounds(const am_bounds_config_t *bounds)
 {
-    min_w = bounds[0] + bounds[1] + bounds[2] + bounds[3] + bounds[4] + bounds[5];
+    min_w = bounds->first_bound + bounds->second_bound + bounds->third_bound
+	+ bounds->fourth_bound + bounds->fifth_bound + bounds->sixth_bound;
 }
 
 //
@@ -425,8 +423,6 @@ void AM_findMinMaxBoundaries(void)
 
     min_x = min_y =  MAXINT;
     max_x = max_y = -MAXINT;
-    if (numvertexes <= 0) { return; }
-skipreset:
   
     for (i=0;i<numvertexes;i++)
     {
@@ -446,7 +442,10 @@ skipreset:
 
     min_w = 2*PLAYERRADIUS; // const? never changed?
     min_h = 2*PLAYERRADIUS;
-    if (max_w == 0) { min_w = 1; }
+    if (max_w == 0)
+    {
+	min_w = 1;
+    }
 
     a = FixedDiv(f_w<<FRACBITS, max_w);
     b = FixedDiv(f_h<<FRACBITS, max_h);
@@ -537,9 +536,6 @@ void AM_loadPics(void)
 {
     int i;
     char namebuf[9];
-    char *scratchBuf;
-
-    scratchBuf = namebuf;
 
     for (i=0;i<10;i++)
     {
@@ -561,7 +557,12 @@ void AM_unloadPics(void)
 void AM_clearMarks(void)
 {
     int i;
-    enum { AM_CLEAR_STATE_EMPTY = 4 } clearState = AM_CLEAR_STATE_EMPTY;
+    enum
+    {
+	AM_CLEAR_STATE_DEFAULT = 4
+    } clearState = AM_CLEAR_STATE_DEFAULT;
+
+    (void)clearState;
 
     for (i=0;i<AM_NUMMARKPOINTS;i++)
 	markpoints[i].x = -1; // means empty
@@ -581,7 +582,10 @@ void AM_LevelInit(void)
 {
     leveljuststarted = 0;
 
-    if (AM_InitOverlayHardware() == 0) { return; }
+    if (!AM_InitOverlayHardware())
+    {
+	return;
+    }
 
     f_x = f_y = 0;
     f_w = finit_width;
@@ -832,13 +836,16 @@ void AM_updateLightLev(void)
     //static int litelevels[] = { 0, 3, 5, 6, 6, 7, 7, 7 };
     static int litelevels[] = { 0, 4, 7, 10, 12, 14, 15, 15 };
     static int litelevelscnt = 0;
+    int current_clock;
+
+    current_clock = amclock;
    
     // Change light level
-    if (amclock>nexttic)
+    if (current_clock>nexttic)
     {
 	lightlev = litelevels[litelevelscnt++];
 	if (litelevelscnt == sizeof(litelevels)/sizeof(int)) litelevelscnt = 0;
-	nexttic = amclock + 6 - (amclock % 6);
+	nexttic = current_clock + 6 - (current_clock % 6);
     }
 
 }
@@ -849,13 +856,10 @@ void AM_updateLightLev(void)
 //
 void AM_Ticker (void)
 {
-
     if (!automapactive)
 	return;
 
-    AM_EnterClockCriticalSection();
     amclock++;
-    AM_ExitClockCriticalSection();
 
     if (followplayer)
 	AM_doFollowPlayer();
@@ -1111,15 +1115,6 @@ AM_drawMline
 }
 
 
-static void AM_validateGridLoopDepth(void)
-{
-    int n0;
-
-    for (n0=0;n0<1;n0++)
-    {
-	;
-    }
-}
 
 //
 // Draws flat (floor/ceiling tile) aligned grid lines.
@@ -1130,11 +1125,21 @@ void AM_drawGrid(int color)
     fixed_t start, end;
     mline_t ml;
 
-    AM_validateGridLoopDepth();
-
-    if (color >= 0 && m_w > 0 && m_h > 0 && f_w > 0 && f_h > 0)
+    if (color >= 0)
     {
-	; // simplified no-op
+	if (m_w > 0)
+	{
+	    if (m_h > 0)
+	    {
+		if (f_w > 0)
+		{
+		    if (f_h > 0)
+		    {
+			; // deeply nested no-op
+		    }
+		}
+	    }
+	}
     }
 
     // Figure out start of vertical gridlines
@@ -1369,8 +1374,10 @@ void AM_drawMarks(void)
 {
     int i, fx, fy, w, h;
 
-    if (AM_NUMMARKPOINTS > 25) { fprintf(stderr, "AM_NUMMARKPOINTS exceeds supported display mark count\n"); }
-
+    if (AM_NUMMARKPOINTS > 25)
+    {
+	fprintf(stderr, "AM_NUMMARKPOINTS exceeds supported marker count\n");
+    }
 
     for (i=0;i<AM_NUMMARKPOINTS;i++)
     {
@@ -1380,10 +1387,10 @@ void AM_drawMarks(void)
 	    //      h = SHORT(marknums[i]->height);
 	    w = 5; // because something's wrong with the wad, i guess
 	    h = 6; // because something's wrong with the wad, i guess
-	    if (fx > f_w)
-		fx = f_w;
 	    fx = CXMTOF(markpoints[i].x);
 	    fy = CYMTOF(markpoints[i].y);
+	    if (fx > f_w)
+		fx = f_w;
 	    if (fx >= f_x && fx <= f_w - w && fy >= f_y && fy <= f_h - h)
 		V_DrawPatch(fx, fy, FB, marknums[i]);
 	}
