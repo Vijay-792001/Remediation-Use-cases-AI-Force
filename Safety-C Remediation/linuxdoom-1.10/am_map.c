@@ -1010,7 +1010,7 @@ AM_clipMline
 
     return true;
 }
-#undef DOOUTCODE
+/* DOOUTCODE intentionally retained; no #undef used. */
 
 
 //
