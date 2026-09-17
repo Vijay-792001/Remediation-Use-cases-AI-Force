@@ -393,7 +393,6 @@ static void AM_findMinMaxBoundaries(void)
     fixed_t b;
 
     min_x = min_y =  MAXINT;
-    max_x = max_y = -MAXINT;
   
     for (i=0;i<numvertexes;i++)
     {
@@ -616,7 +615,6 @@ AM_Responder
 {
 
     int rc;
-    static int cheatstate=0;
     static char buffer[20];
 
     rc = false;
@@ -695,7 +693,6 @@ AM_Responder
 	    plr->message = AMSTR_MARKSCLEARED;
 	    break;
 	  default:
-	    cheatstate=0;
 	    rc = false;
 	}
 	if (!deathmatch && cht_CheckCheat(&cheat_amap, ev->data1))
