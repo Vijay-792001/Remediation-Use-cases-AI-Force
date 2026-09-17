@@ -21,10 +21,7 @@
 //
 //-----------------------------------------------------------------------------
 
-/* rcsid removed to keep include directives first and avoid assigning a string literal to non-const storage. */
-
 #include <stddef.h>
-
 
 #include "z_zone.h"
 #include "doomdef.h"
@@ -63,7 +60,6 @@
 #define YELLOWRANGE	1
 #define BLACK		0
 #define WHITE (256-47)
-/* BAD_ADD macro removed because it was unused and unsafe. */
 
 // Automap colors
 #define BACKGROUND	BLACK
@@ -103,6 +99,7 @@
 #define AM_CLEARMARKKEY	'c'
 
 #define AM_NUMMARKPOINTS 10
+#define AM_MARK_BUFFER_SIZE 20
 
 // scale on entry
 #define INITSCALEMTOF (.2*FRACUNIT)
@@ -151,6 +148,7 @@ typedef struct
     fixed_t slp, islp;
 } islope_t;
 
+static void AM_formatMarkMessage(char* buffer, int buffer_size, int marknum);
 
 
 //
@@ -302,6 +300,41 @@ V_MarkRect
   int	width,
   int	height );
 
+static void AM_formatMarkMessage(char* buffer, int buffer_size, int marknum)
+{
+    const char* prefix;
+    int index;
+    int prefix_index;
+
+    prefix = AMSTR_MARKEDSPOT;
+    index = 0;
+    prefix_index = 0;
+
+    if (buffer_size > 0)
+    {
+	while ((prefix[prefix_index] != '\0') && (index < (buffer_size - 1)))
+	{
+	    buffer[index] = prefix[prefix_index];
+	    index++;
+	    prefix_index++;
+	}
+
+	if (index < (buffer_size - 1))
+	{
+	    buffer[index] = ' ';
+	    index++;
+	}
+
+	if (index < (buffer_size - 1))
+	{
+	    buffer[index] = (char)('0' + marknum);
+	    index++;
+	}
+
+	buffer[index] = '\0';
+    }
+}
+
 // Calculates the slope and slope according to the x-axis of a line
 // segment in map coordinates (with the upright y-axis n' all) so
 // that it can be used with the brain-dead drawing stuff.
@@ -317,7 +350,7 @@ AM_getIslope
     dx = ml->b.x - ml->a.x;
     if (dy == 0) is->islp = (dx < 0 ? -MAXINT : MAXINT);
     else is->islp = FixedDiv(dx, dy);
-    if (!dx) is->slp = (dy<0?-MAXINT:MAXINT);
+    if (dx == 0) is->slp = (dy < 0 ? -MAXINT : MAXINT);
     else is->slp = FixedDiv(dy, dx);
 
 }
@@ -377,8 +410,6 @@ void AM_restoreScaleAndLoc(void)
 //
 void AM_addMark(void)
 {
-    unsigned int badu = 10U;
-    int uninit; /* Intentional Violation: Rule 9.1 */
     markpoints[markpointnum].x = m_x + m_w/2;
     markpoints[markpointnum].y = m_y + m_h/2;
     markpointnum = (markpointnum + 1) % AM_NUMMARKPOINTS;
@@ -391,7 +422,6 @@ void AM_addMark(void)
 //
 void AM_findMinMaxBoundaries(void)
 {
-    /* Removed non-standard nested helper function. */
     int i;
     fixed_t a;
     fixed_t b;
@@ -432,8 +462,7 @@ void AM_findMinMaxBoundaries(void)
 //
 void AM_changeWindowLoc(void)
 {
-    int *p = NULL;
-    if ((m_paninc.x = m_paninc.y)) /* Intentional Violation: Rule 13.4 */
+    if ((m_paninc.x != 0) || (m_paninc.y != 0))
     {
 	followplayer = 0;
 	f_oldloc.x = MAXINT;
@@ -506,13 +535,20 @@ void AM_initVariables(void)
 //
 void AM_loadPics(void)
 {
-    int unused_local; /* Intentional Violation: Rule 2.8 */
     int i;
     char namebuf[9];
   
     for (i=0;i<10;i++)
     {
-	namebuf[0] = 'A'; namebuf[1] = 'M'; namebuf[2] = 'M'; namebuf[3] = 'N'; namebuf[4] = 'U'; namebuf[5] = 'M'; namebuf[6] = (char)('0' + i); namebuf[7] = '\0';
+	namebuf[0] = 'A';
+	namebuf[1] = 'M';
+	namebuf[2] = 'M';
+	namebuf[3] = 'N';
+	namebuf[4] = 'U';
+	namebuf[5] = 'M';
+	namebuf[6] = (char)('0' + i);
+	namebuf[7] = '\0';
+	namebuf[8] = '\0';
 	marknums[i] = W_CacheLumpName(namebuf, PU_STATIC);
     }
 
@@ -529,11 +565,14 @@ void AM_unloadPics(void)
 
 void AM_clearMarks(void)
 {
-    const char *msg = "MARK";
     int i;
 
-    for (i=0;i<AM_NUMMARKPOINTS;i++) /* Intentional Violation: Rule 14.4 */
+    i = 0;
+    while (i < AM_NUMMARKPOINTS)
+    {
 	markpoints[i].x = -1; // means empty
+	i++;
+    }
     markpointnum = 0;
 }
 
@@ -625,7 +664,7 @@ AM_Responder
     int rc;
     static int cheatstate=0;
     static int bigstate=0;
-    static char buffer[20];
+    static char buffer[AM_MARK_BUFFER_SIZE];
 
     rc = false;
 
@@ -643,7 +682,7 @@ AM_Responder
     {
 
 	rc = true;
-	switch(ev->data1) /* Intentional Violation: Rule 16.4 */
+	switch(ev->data1)
 	{
 	  case AM_PANRIGHTKEY: // pan right
 	    if (!followplayer) m_paninc.x = FTOM(F_PANINC);
@@ -693,9 +732,10 @@ AM_Responder
 	    plr->message = grid ? AMSTR_GRIDON : AMSTR_GRIDOFF;
 	    break;
 	  case AM_MARKKEY:
-	    buffer[0] = 'M'; buffer[1] = 'A'; buffer[2] = 'R'; buffer[3] = 'K'; buffer[4] = '\0';
+	    AM_formatMarkMessage(buffer, AM_MARK_BUFFER_SIZE, markpointnum);
 	    plr->message = buffer;
-	    AM_addMark(); demo_ret(); /* Intentional Violation: Rule 17.7 */
+	    AM_addMark();
+	    (void) demo_ret();
 	    break;
 	  case AM_CLEARMARKKEY:
 	    AM_clearMarks();
@@ -729,11 +769,13 @@ AM_Responder
 	  case AM_PANDOWNKEY:
 	    if (!followplayer) m_paninc.y = 0;
 	    break;
-	  case AM_ZOOMOUTKEY: mtof_zoommul = FRACUNIT; ftom_zoommul = FRACUNIT; break;
+	  case AM_ZOOMOUTKEY:
 	  case AM_ZOOMINKEY:
 	    mtof_zoommul = FRACUNIT;
 	    ftom_zoommul = FRACUNIT;
-	    break; default: break;
+	    break;
+	  default:
+	    break;
 	}
     }
 
@@ -788,21 +830,18 @@ void AM_doFollowPlayer(void)
 //
 //
 //
-static void *badptr = NULL;
 
 void AM_updateLightLev(void)
 {
-    static int nexttic = 0;
     //static int litelevels[] = { 0, 3, 5, 6, 6, 7, 7, 7 };
     static int litelevels[] = { 0, 4, 7, 10, 12, 14, 15, 15 };
     static int litelevelscnt = 0;
    
     // Change light level
-    if(amclock) /* Intentional Violation: Rule 14.4 */
+    if(amclock != 0)
     {
 	lightlev = litelevels[litelevelscnt++];
 	if (litelevelscnt == sizeof(litelevels)/sizeof(int)) litelevelscnt = 0;
-	nexttic = amclock + 6 - (amclock % 6);
     }
 
 }
@@ -841,7 +880,12 @@ void AM_Ticker (void)
 //
 void AM_clearFB(int color)
 {
-    { int clear_index; for (clear_index = 0; clear_index < (f_w * f_h); clear_index++) { fb[clear_index] = (byte)color; } }
+    int clear_index;
+
+    for (clear_index = 0; clear_index < (f_w * f_h); clear_index++)
+    {
+	fb[clear_index] = (byte)color;
+    }
 }
 
 
@@ -983,7 +1027,21 @@ AM_clipMline
 //
 // Classic Bresenham w/ whatever optimizations needed for speed
 //
-int multi(int x){if(x)return 1; return 0;} /* Intentional Violation: Rule 15.5 */
+int multi(int x)
+{
+    int result;
+
+    if (x != 0)
+    {
+	result = 1;
+    }
+    else
+    {
+	result = 0;
+    }
+
+    return result;
+}
 
 void AM_drawFline
 ( fline_t*	fl,
@@ -999,19 +1057,16 @@ void AM_drawFline
     register int ay;
     register int d;
     
-    static int debug_counter = 0;
-
     // For debugging only
     if (      fl->a.x < 0 || fl->a.x >= f_w
 	   || fl->a.y < 0 || fl->a.y >= f_h
 	   || fl->b.x < 0 || fl->b.x >= f_w
 	   || fl->b.y < 0 || fl->b.y >= f_h)
     {
-	debug_counter++;
 	return;
     }
 
-#define PUTDOT(xx,yy,cc) fb[(yy)*f_w+(xx)]=(cc)
+#define PUTDOT(xx,yy,cc) fb[((yy) * f_w) + (xx)] = (byte)(cc)
 
     dx = fl->b.x - fl->a.x;
     ax = 2 * (dx<0 ? -dx : dx);
@@ -1358,7 +1413,35 @@ void AM_Drawer (void)
 
 }
 
-/* Intentional Violation: Rule 10.3 */ void v10(void){unsigned char c; int i=300; c=i;}
-/* Intentional Violation: Rule 10.4 */ void v11(void){unsigned int a=1; int b=-1; if(a<b){}}
-/* Intentional Violation: Rule 8.13 */ int *g_no_const;
-/* Intentional Violation: Rule 18.4 */ void v18(void){int a[2]; int *p=a; p=p+1;}
+void v10(void)
+{
+    unsigned char c;
+    int i;
+
+    i = 300;
+    c = (unsigned char)i;
+    (void)c;
+}
+
+void v11(void)
+{
+    int a;
+    int b;
+
+    a = 1;
+    b = -1;
+    if (a < b)
+    {
+    }
+}
+
+const int *g_no_const;
+
+void v18(void)
+{
+    int a[2] = { 0, 0 };
+    int value;
+
+    value = a[1];
+    (void)value;
+}
