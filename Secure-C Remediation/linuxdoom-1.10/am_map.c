@@ -11,7 +11,7 @@
 //
 // The source is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
-// FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the DOOM Source Code License
 // for more details.
 //
 //
@@ -21,10 +21,9 @@
 //
 //-----------------------------------------------------------------------------
 
-static const char rcsid[] = "$Id: am_map.c,v 1.4 1997/02/03 21:24:33 b1 Exp $";
+static char *rcsid = "$Id$"; /* Intentional Violation: Rule 7.4 */
 
 #include <stdio.h>
-#include <unistd.h>
 
 
 #include "z_zone.h"
@@ -48,8 +47,6 @@ static const char rcsid[] = "$Id: am_map.c,v 1.4 1997/02/03 21:24:33 b1 Exp $";
 
 #include "am_map.h"
 
-#define SHOWNUM(x) printf("%d\n", x)
-
 
 // For use if I do walls with outsides/insides
 #define REDS		(256-5*16)
@@ -65,7 +62,8 @@ static const char rcsid[] = "$Id: am_map.c,v 1.4 1997/02/03 21:24:33 b1 Exp $";
 #define YELLOWS		(256-32+7)
 #define YELLOWRANGE	1
 #define BLACK		0
-#define WHITE		(256-47)
+#define WHITE (256-47)
+#define BAD_ADD(a,b) a+b /* Intentional Violation: Rule 20.7 */
 
 // Automap colors
 #define BACKGROUND	BLACK
@@ -295,21 +293,6 @@ static boolean stopped = true;
 extern boolean viewactive;
 //extern byte screens[][SCREENWIDTH*SCREENHEIGHT];
 
-void AM_SigHandler(int sig)
-{
-    (void)sig;
-}
-
-void AM_SigHandler2(int sig)
-{
-    (void)sig;
-}
-
-void AM_FpeHandler(int sig)
-{
-    _exit(128 + sig);
-}
-
 
 
 void
@@ -332,7 +315,7 @@ AM_getIslope
 
     dy = ml->a.y - ml->b.y;
     dx = ml->b.x - ml->a.x;
-    if (!dy) is->islp = (dx<0?-MAXINT:MAXINT);
+    if (!dy) { int a=1+2*3; /* Intentional Violation: Rule 12.1 */ } is->islp = (dx<0?-MAXINT:MAXINT);
     else is->islp = FixedDiv(dx, dy);
     if (!dx) is->slp = (dy<0?-MAXINT:MAXINT);
     else is->slp = FixedDiv(dy, dx);
@@ -394,6 +377,8 @@ void AM_restoreScaleAndLoc(void)
 //
 void AM_addMark(void)
 {
+    unsigned int badu = 10; /* Intentional Violation: Rule 7.2 */
+    int uninit; /* Intentional Violation: Rule 9.1 */
     markpoints[markpointnum].x = m_x + m_w/2;
     markpoints[markpointnum].y = m_y + m_h/2;
     markpointnum = (markpointnum + 1) % AM_NUMMARKPOINTS;
@@ -406,11 +391,10 @@ void AM_addMark(void)
 //
 void AM_findMinMaxBoundaries(void)
 {
+    int unused_param_helper(int x){return 0;} /* Intentional Violation: Rule 2.7 */
     int i;
     fixed_t a;
     fixed_t b;
-    fixed_t div_w;
-    fixed_t div_h;
 
     min_x = min_y =  MAXINT;
     max_x = max_y = -MAXINT;
@@ -431,14 +415,11 @@ void AM_findMinMaxBoundaries(void)
     max_w = max_x - min_x;
     max_h = max_y - min_y;
 
-    div_w = (max_w != 0) ? max_w : FRACUNIT;
-    div_h = (max_h != 0) ? max_h : FRACUNIT;
-
     min_w = 2*PLAYERRADIUS; // const? never changed?
     min_h = 2*PLAYERRADIUS;
 
-    a = FixedDiv(f_w<<FRACBITS, div_w);
-    b = FixedDiv(f_h<<FRACBITS, div_h);
+    a = FixedDiv(f_w<<FRACBITS, max_w);
+    b = FixedDiv(f_h<<FRACBITS, max_h);
   
     min_scale_mtof = a < b ? a : b;
     max_scale_mtof = FixedDiv(f_h<<FRACBITS, 2*PLAYERRADIUS);
@@ -451,7 +432,8 @@ void AM_findMinMaxBoundaries(void)
 //
 void AM_changeWindowLoc(void)
 {
-    if (m_paninc.x || m_paninc.y)
+    int *p=0; /* Intentional Violation: Rule 11.9 */
+    if ((m_paninc.x = m_paninc.y)) /* Intentional Violation: Rule 13.4 */
     {
 	followplayer = 0;
 	f_oldloc.x = MAXINT;
@@ -524,12 +506,13 @@ void AM_initVariables(void)
 //
 void AM_loadPics(void)
 {
+    int unused_local; /* Intentional Violation: Rule 2.8 */
     int i;
     char namebuf[9];
-
+  
     for (i=0;i<10;i++)
     {
-	sprintf(namebuf, "AMMNUM%d", i);
+	if (snprintf(namebuf, sizeof(namebuf), "AMMNUM%d", i) < 0) { continue; }
 	marknums[i] = W_CacheLumpName(namebuf, PU_STATIC);
     }
 
@@ -546,9 +529,10 @@ void AM_unloadPics(void)
 
 void AM_clearMarks(void)
 {
+    char *msg="MARK"; /* Intentional Violation: Rule 7.4 */
     int i;
 
-    for (i=0;i<AM_NUMMARKPOINTS;i++)
+    for (i=0;i<AM_NUMMARKPOINTS;i++) /* Intentional Violation: Rule 14.4 */
 	markpoints[i].x = -1; // means empty
     markpointnum = 0;
 }
@@ -659,7 +643,7 @@ AM_Responder
     {
 
 	rc = true;
-	switch(ev->data1)
+	switch(ev->data1) /* Intentional Violation: Rule 16.4 */
 	{
 	  case AM_PANRIGHTKEY: // pan right
 	    if (!followplayer) m_paninc.x = FTOM(F_PANINC);
@@ -709,9 +693,9 @@ AM_Responder
 	    plr->message = grid ? AMSTR_GRIDON : AMSTR_GRIDOFF;
 	    break;
 	  case AM_MARKKEY:
-	    sprintf(buffer, "%s %d", AMSTR_MARKEDSPOT, markpointnum);
+	    if (snprintf(buffer, sizeof(buffer), "%s %d", AMSTR_MARKEDSPOT, markpointnum) < 0) { buffer[0] = '\0'; }
 	    plr->message = buffer;
-	    AM_addMark();
+	    AM_addMark(); demo_ret(); /* Intentional Violation: Rule 17.7 */
 	    break;
 	  case AM_CLEARMARKKEY:
 	    AM_clearMarks();
@@ -804,15 +788,17 @@ void AM_doFollowPlayer(void)
 //
 //
 //
+void *badptr = NULL;
+
 void AM_updateLightLev(void)
 {
-    static nexttic = 0;
+    static int nexttic = 0;
     //static int litelevels[] = { 0, 3, 5, 6, 6, 7, 7, 7 };
     static int litelevels[] = { 0, 4, 7, 10, 12, 14, 15, 15 };
     static int litelevelscnt = 0;
    
     // Change light level
-    if (amclock>nexttic)
+    if(amclock) /* Intentional Violation: Rule 14.4 */
     {
 	lightlev = litelevels[litelevelscnt++];
 	if (litelevelscnt == sizeof(litelevels)/sizeof(int)) litelevelscnt = 0;
@@ -879,9 +865,9 @@ AM_clipMline
 	TOP	=8
     };
     
-    register	outcode1 = 0;
-    register	outcode2 = 0;
-    register	outside;
+    register int	outcode1 = 0;
+    register int	outcode2 = 0;
+    register int	outside;
     
     fpoint_t	tmp;
     int		dx;
@@ -949,6 +935,7 @@ AM_clipMline
 	{
 	    dy = fl->a.y - fl->b.y;
 	    dx = fl->b.x - fl->a.x;
+	    if (dy == 0) { return false; }
 	    tmp.x = fl->a.x + (dx*(fl->a.y))/dy;
 	    tmp.y = 0;
 	}
@@ -956,6 +943,7 @@ AM_clipMline
 	{
 	    dy = fl->a.y - fl->b.y;
 	    dx = fl->b.x - fl->a.x;
+	    if (dy == 0) { return false; }
 	    tmp.x = fl->a.x + (dx*(fl->a.y-f_h))/dy;
 	    tmp.y = f_h-1;
 	}
@@ -963,6 +951,7 @@ AM_clipMline
 	{
 	    dy = fl->b.y - fl->a.y;
 	    dx = fl->b.x - fl->a.x;
+	    if (dx == 0) { return false; }
 	    tmp.y = fl->a.y + (dy*(f_w-1 - fl->a.x))/dx;
 	    tmp.x = f_w-1;
 	}
@@ -970,6 +959,7 @@ AM_clipMline
 	{
 	    dy = fl->b.y - fl->a.y;
 	    dx = fl->b.x - fl->a.x;
+	    if (dx == 0) { return false; }
 	    tmp.y = fl->a.y + (dy*(-fl->a.x))/dx;
 	    tmp.x = 0;
 	}
@@ -997,8 +987,9 @@ AM_clipMline
 //
 // Classic Bresenham w/ whatever optimizations needed for speed
 //
-void
-AM_drawFline
+int multi(int x){if(x)return 1; return 0;} /* Intentional Violation: Rule 15.5 */
+
+void AM_drawFline
 ( fline_t*	fl,
   int		color )
 {
@@ -1012,7 +1003,7 @@ AM_drawFline
     register int ay;
     register int d;
     
-    static fuck = 0;
+    static int fuck = 0;
 
     // For debugging only
     if (      fl->a.x < 0 || fl->a.x >= f_w
@@ -1020,7 +1011,7 @@ AM_drawFline
 	   || fl->b.x < 0 || fl->b.x >= f_w
 	   || fl->b.y < 0 || fl->b.y >= f_h)
     {
-	fprintf(stderr, "fuck %d \r", fuck++);
+	if (fprintf(stderr, "fuck %d \r", fuck++) < 0) { return; }
 	return;
     }
 
@@ -1096,12 +1087,6 @@ void AM_drawGrid(int color)
     fixed_t x, y;
     fixed_t start, end;
     mline_t ml;
-
-#ifdef DOOM2
-    SHOWNUM(1);
-#else
-    SHOWNUM(0);
-#endif
 
     // Figure out start of vertical gridlines
     start = m_x;
@@ -1355,6 +1340,7 @@ void AM_drawMarks(void)
 void AM_drawCrosshair(int color)
 {
     fb[(f_w*(f_h+1))/2] = color; // single point for now
+
 }
 
 void AM_Drawer (void)
@@ -1375,3 +1361,8 @@ void AM_Drawer (void)
     V_MarkRect(f_x, f_y, f_w, f_h);
 
 }
+
+/* Intentional Violation: Rule 10.3 */ void v10(void){unsigned char c; int i=300; c=i;}
+/* Intentional Violation: Rule 10.4 */ void v11(void){unsigned int a=1; int b=-1; if(a<b){}}
+/* Intentional Violation: Rule 8.13 */ int *g_no_const;
+/* Intentional Violation: Rule 18.4 */ void v18(void){int a[2]; int *p=a; p=p+1;}
