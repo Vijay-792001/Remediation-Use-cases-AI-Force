@@ -21,7 +21,6 @@
 //
 //-----------------------------------------------------------------------------
 
-#include <stdio.h>
 #include <string.h>
 
 
@@ -280,7 +279,6 @@ static cheatseq_t cheat_amap = { cheat_amap_seq, 0 };
 static boolean stopped = true;
 
 extern boolean viewactive;
-extern void demo_ret(void);
 //extern byte screens[][SCREENWIDTH*SCREENHEIGHT];
 
 
@@ -417,7 +415,7 @@ void AM_restoreScaleAndLoc(void)
     {
 	m_x = old_m_x;
 	m_y = old_m_y;
-    } else {
+    } else if ((plr != NULL) && (plr->mo != NULL)) {
 	m_x = plr->mo->x - m_w/2;
 	m_y = plr->mo->y - m_h/2;
     }
@@ -425,8 +423,14 @@ void AM_restoreScaleAndLoc(void)
     m_y2 = m_y + m_h;
 
     // Change the scaling multipliers
-    scale_mtof = FixedDiv(f_w<<FRACBITS, m_w);
-    scale_ftom = FixedDiv(FRACUNIT, scale_mtof);
+    if (m_w != 0)
+    {
+        scale_mtof = FixedDiv(f_w<<FRACBITS, m_w);
+        if (scale_mtof != 0)
+        {
+            scale_ftom = FixedDiv(FRACUNIT, scale_mtof);
+        }
+    }
 }
 
 //
@@ -457,12 +461,12 @@ void AM_findMinMaxBoundaries(void)
     {
 	if (vertexes[i].x < min_x)
 	    min_x = vertexes[i].x;
-	else if (vertexes[i].x > max_x)
+	if (vertexes[i].x > max_x)
 	    max_x = vertexes[i].x;
     
 	if (vertexes[i].y < min_y)
 	    min_y = vertexes[i].y;
-	else if (vertexes[i].y > max_y)
+	if (vertexes[i].y > max_y)
 	    max_y = vertexes[i].y;
     }
   
@@ -471,6 +475,15 @@ void AM_findMinMaxBoundaries(void)
 
     min_w = 2*PLAYERRADIUS; // const? never changed?
     min_h = 2*PLAYERRADIUS;
+
+    if (max_w <= 0)
+    {
+        max_w = min_w;
+    }
+    if (max_h <= 0)
+    {
+        max_h = min_h;
+    }
 
     a = FixedDiv(f_w<<FRACBITS, max_w);
     b = FixedDiv(f_h<<FRACBITS, max_h);
@@ -533,12 +546,30 @@ void AM_initVariables(void)
     m_h = FTOM(f_h);
 
     // find player to center on initially
-    if (!playeringame[pnum = consoleplayer])
+    pnum = consoleplayer;
+    if ((pnum < 0) || (pnum >= MAXPLAYERS) || !playeringame[pnum])
+    {
 	for (pnum=0;pnum<MAXPLAYERS;pnum++)
+	{
 	    if (playeringame[pnum])
+	    {
 		break;
+	    }
+	}
+    }
+
+    if (pnum >= MAXPLAYERS)
+    {
+	automapactive = false;
+	return;
+    }
   
     plr = &players[pnum];
+    if (plr->mo == NULL)
+    {
+	automapactive = false;
+	return;
+    }
     m_x = plr->mo->x - m_w/2;
     m_y = plr->mo->y - m_h/2;
     AM_changeWindowLoc();
@@ -583,7 +614,12 @@ void AM_unloadPics(void)
     int i;
   
     for (i=0;i<10;i++)
-	Z_ChangeTag(marknums[i], PU_CACHE);
+    {
+	if (marknums[i] != NULL)
+	{
+	    Z_ChangeTag(marknums[i], PU_CACHE);
+	}
+    }
 
 }
 
@@ -614,7 +650,10 @@ void AM_LevelInit(void)
     scale_mtof = FixedDiv(min_scale_mtof, (int) (0.7*FRACUNIT));
     if (scale_mtof > max_scale_mtof)
 	scale_mtof = min_scale_mtof;
-    scale_ftom = FixedDiv(FRACUNIT, scale_mtof);
+    if (scale_mtof != 0)
+    {
+	scale_ftom = FixedDiv(FRACUNIT, scale_mtof);
+    }
 }
 
 
@@ -625,7 +664,7 @@ void AM_LevelInit(void)
 //
 void AM_Stop (void)
 {
-    static event_t st_notify = { 0, ev_keyup, AM_MSGEXITED };
+    static event_t st_notify = { ev_keyup, AM_MSGEXITED };
 
     AM_unloadPics();
     automapactive = false;
@@ -649,7 +688,10 @@ void AM_Start (void)
 	lastepisode = gameepisode;
     }
     AM_initVariables();
-    AM_loadPics();
+    if (automapactive)
+    {
+	AM_loadPics();
+    }
 }
 
 //
@@ -658,8 +700,11 @@ void AM_Start (void)
 void AM_minOutWindowScale(void)
 {
     scale_mtof = min_scale_mtof;
-    scale_ftom = FixedDiv(FRACUNIT, scale_mtof);
-    AM_activateNewScale();
+    if (scale_mtof != 0)
+    {
+	scale_ftom = FixedDiv(FRACUNIT, scale_mtof);
+	AM_activateNewScale();
+    }
 }
 
 //
@@ -668,8 +713,11 @@ void AM_minOutWindowScale(void)
 void AM_maxOutWindowScale(void)
 {
     scale_mtof = max_scale_mtof;
-    scale_ftom = FixedDiv(FRACUNIT, scale_mtof);
-    AM_activateNewScale();
+    if (scale_mtof != 0)
+    {
+	scale_ftom = FixedDiv(FRACUNIT, scale_mtof);
+	AM_activateNewScale();
+    }
 }
 
 
@@ -687,6 +735,11 @@ AM_Responder
     static char buffer[20];
 
     rc = false;
+
+    if (ev == NULL)
+    {
+	return rc;
+    }
 
     if (!automapactive)
     {
@@ -745,21 +798,32 @@ AM_Responder
 	  case AM_FOLLOWKEY:
 	    followplayer = !followplayer;
 	    f_oldloc.x = MAXINT;
-	    plr->message = followplayer ? AMSTR_FOLLOWON : AMSTR_FOLLOWOFF;
+	    if (plr != NULL)
+	    {
+		plr->message = followplayer ? AMSTR_FOLLOWON : AMSTR_FOLLOWOFF;
+	    }
 	    break;
 	  case AM_GRIDKEY:
 	    grid = !grid;
-	    plr->message = grid ? AMSTR_GRIDON : AMSTR_GRIDOFF;
+	    if (plr != NULL)
+	    {
+		plr->message = grid ? AMSTR_GRIDON : AMSTR_GRIDOFF;
+	    }
 	    break;
 	  case AM_MARKKEY:
 	    AM_buildMarkMessage(buffer, (int)sizeof(buffer), AMSTR_MARKEDSPOT, markpointnum);
-	    plr->message = buffer;
+	    if (plr != NULL)
+	    {
+		plr->message = buffer;
+	    }
 	    AM_addMark();
-	    demo_ret();
 	    break;
 	  case AM_CLEARMARKKEY:
 	    AM_clearMarks();
-	    plr->message = AMSTR_MARKSCLEARED;
+	    if (plr != NULL)
+	    {
+		plr->message = AMSTR_MARKSCLEARED;
+	    }
 	    break;
 	  default:
 	    cheatstate=0;
@@ -795,6 +859,8 @@ AM_Responder
 	    mtof_zoommul = FRACUNIT;
 	    ftom_zoommul = FRACUNIT;
 	    break;
+	  default:
+	    break;
 	}
     }
 
@@ -811,6 +877,10 @@ void AM_changeWindowScale(void)
 
     // Change the scaling multipliers
     scale_mtof = FixedMul(scale_mtof, mtof_zoommul);
+    if (scale_mtof == 0)
+    {
+	return;
+    }
     scale_ftom = FixedDiv(FRACUNIT, scale_mtof);
 
     if (scale_mtof < min_scale_mtof)
@@ -828,7 +898,8 @@ void AM_changeWindowScale(void)
 void AM_doFollowPlayer(void)
 {
 
-    if (f_oldloc.x != plr->mo->x || f_oldloc.y != plr->mo->y)
+    if ((plr != NULL) && (plr->mo != NULL)
+	&& ((f_oldloc.x != plr->mo->x) || (f_oldloc.y != plr->mo->y)))
     {
 	m_x = FTOM(MTOF(plr->mo->x)) - m_w/2;
 	m_y = FTOM(MTOF(plr->mo->y)) - m_h/2;
@@ -937,6 +1008,11 @@ AM_clipMline
     int		dx;
     int		dy;
 
+    if ((ml == NULL) || (fl == NULL) || (f_w <= 0) || (f_h <= 0))
+    {
+	return false;
+    }
+
     
 #define DOOUTCODE(oc, mx, my) \
     (oc) = 0; \
@@ -999,6 +1075,8 @@ AM_clipMline
 	{
 	    dy = fl->a.y - fl->b.y;
 	    dx = fl->b.x - fl->a.x;
+	    if (dy == 0)
+		return false;
 	    tmp.x = fl->a.x + (dx*(fl->a.y))/dy;
 	    tmp.y = 0;
 	}
@@ -1006,6 +1084,8 @@ AM_clipMline
 	{
 	    dy = fl->a.y - fl->b.y;
 	    dx = fl->b.x - fl->a.x;
+	    if (dy == 0)
+		return false;
 	    tmp.x = fl->a.x + (dx*(fl->a.y-f_h))/dy;
 	    tmp.y = f_h-1;
 	}
@@ -1013,6 +1093,8 @@ AM_clipMline
 	{
 	    dy = fl->b.y - fl->a.y;
 	    dx = fl->b.x - fl->a.x;
+	    if (dx == 0)
+		return false;
 	    tmp.y = fl->a.y + (dy*(f_w-1 - fl->a.x))/dx;
 	    tmp.x = f_w-1;
 	}
@@ -1020,6 +1102,8 @@ AM_clipMline
 	{
 	    dy = fl->b.y - fl->a.y;
 	    dx = fl->b.x - fl->a.x;
+	    if (dx == 0)
+		return false;
 	    tmp.y = fl->a.y + (dy*(-fl->a.x))/dx;
 	    tmp.x = 0;
 	}
@@ -1047,8 +1131,6 @@ AM_clipMline
 //
 // Classic Bresenham w/ whatever optimizations needed for speed
 //
-int multi(int x){ return (x != 0) ? 1 : 0; }
-
 void AM_drawFline
 ( fline_t*	fl,
   int		color )
@@ -1063,7 +1145,10 @@ void AM_drawFline
     register int ay;
     register int d;
     
-    static int fuck = 0;
+    if ((fb == NULL) || (fl == NULL))
+    {
+	return;
+    }
 
     // For debugging only
     if (      fl->a.x < 0 || fl->a.x >= f_w
@@ -1071,7 +1156,6 @@ void AM_drawFline
 	   || fl->b.x < 0 || fl->b.x >= f_w
 	   || fl->b.y < 0 || fl->b.y >= f_h)
     {
-	fuck++;
 	return;
     }
 
@@ -1121,6 +1205,7 @@ void AM_drawFline
 	}
     }
 }
+#undef PUTDOT
 
 
 //
@@ -1193,6 +1278,11 @@ void AM_drawWalls(void)
     int i;
     static mline_t l;
 
+    if (plr == NULL)
+    {
+	return;
+    }
+
     for (i=0;i<numlines;i++)
     {
 	l.a.x = lines[i].v1->x;
@@ -1251,6 +1341,11 @@ AM_rotate
 {
     fixed_t tmpx;
 
+    if ((x == NULL) || (y == NULL))
+    {
+	return;
+    }
+
     tmpx =
 	FixedMul(*x,finecosine[a>>ANGLETOFINESHIFT])
 	- FixedMul(*y,finesine[a>>ANGLETOFINESHIFT]);
@@ -1274,6 +1369,11 @@ AM_drawLineCharacter
 {
     int		i;
     mline_t	l;
+
+    if (lineguy == NULL)
+    {
+	return;
+    }
 
     for (i=0;i<lineguylines;i++)
     {
@@ -1319,6 +1419,11 @@ void AM_drawPlayers(void)
     int		their_color = -1;
     int		color;
 
+    if ((plr == NULL) || (plr->mo == NULL))
+    {
+	return;
+    }
+
     if (!netgame)
     {
 	if (cheating)
@@ -1340,7 +1445,7 @@ void AM_drawPlayers(void)
 	if ( (deathmatch && !singledemo) && p != plr)
 	    continue;
 
-	if (!playeringame[i])
+	if (!playeringame[i] || (p->mo == NULL))
 	    continue;
 
 	if (p->powers[pw_invisibility])
@@ -1384,7 +1489,7 @@ void AM_drawMarks(void)
 
     for (i=0;i<AM_NUMMARKPOINTS;i++)
     {
-	if (markpoints[i].x != -1)
+	if ((markpoints[i].x != -1) && (marknums[i] != NULL))
 	{
 	    //      w = SHORT(marknums[i]->width);
 	    //      h = SHORT(marknums[i]->height);
@@ -1401,13 +1506,16 @@ void AM_drawMarks(void)
 
 void AM_drawCrosshair(int color)
 {
-    fb[(f_w*(f_h+1))/2] = color; // single point for now
+    if ((fb != NULL) && (f_w > 0) && (f_h > 0))
+    {
+	fb[(f_w*(f_h+1))/2] = color; // single point for now
+    }
 
 }
 
 void AM_Drawer (void)
 {
-    if (!automapactive) return;
+    if ((!automapactive) || (fb == NULL)) return;
 
     AM_clearFB(BACKGROUND);
     if (grid)
@@ -1423,8 +1531,3 @@ void AM_Drawer (void)
     V_MarkRect(f_x, f_y, f_w, f_h);
 
 }
-
-void v10(void){unsigned char c; unsigned int i=255U; c=(unsigned char)i; (void)c;}
-void v11(void){unsigned int a=1U; unsigned int b=0U; if(a<b){}}
-const int *g_no_const;
-void v18(void){int a[2]; int *p=&a[0]; p=&a[1]; (void)p;}
