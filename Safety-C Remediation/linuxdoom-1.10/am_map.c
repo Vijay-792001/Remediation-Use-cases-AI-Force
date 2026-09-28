@@ -45,6 +45,8 @@
 
 #include "am_map.h"
 
+static const char *rcsid = "$Id$";
+
 
 // For use if I do walls with outsides/insides
 #define REDS		(256-5*16)
@@ -61,7 +63,6 @@
 #define YELLOWRANGE	1
 #define BLACK		0
 #define WHITE (256-47)
-#define BAD_ADD(a,b) ((a)+(b))
 
 // Automap colors
 #define BACKGROUND	BLACK
@@ -712,22 +713,21 @@ AM_Responder
 	  case AM_MARKKEY:
 	    {
 		const char *src = AMSTR_MARKEDSPOT;
-		char *dst = buffer;
+		int index = 0;
 
-		while (*src != '\0')
+		while ((src[index] != '\0') && (index < ((int)sizeof(buffer) - 3)))
 		{
-		    *dst = *src;
-		    dst++;
-		    src++;
+		    buffer[index] = src[index];
+		    index++;
 		}
-		*dst = ' ';
-		dst++;
-		*dst = (char)('0' + markpointnum);
-		dst++;
-		*dst = '\0';
+		buffer[index] = ' ';
+		index++;
+		buffer[index] = (char)('0' + markpointnum);
+		index++;
+		buffer[index] = '\0';
 	    }
 	    plr->message = buffer;
-	    AM_addMark(); demo_ret(); /* Intentional Violation: Rule 17.7 */
+	    AM_addMark(); (void)demo_ret();
 	    break;
 	  case AM_CLEARMARKKEY:
 	    AM_clearMarks();
@@ -822,17 +822,17 @@ void AM_doFollowPlayer(void)
 //
 //
 //
-void *badptr=(void*)1; /* Intentional Violation: Rule 11.3 */
+void *badptr = NULL;
 
 void AM_updateLightLev(void)
 {
-    static nexttic = 0;
+    static int nexttic = 0;
     //static int litelevels[] = { 0, 3, 5, 6, 6, 7, 7, 7 };
     static int litelevels[] = { 0, 4, 7, 10, 12, 14, 15, 15 };
     static int litelevelscnt = 0;
    
     // Change light level
-    if(amclock) /* Intentional Violation: Rule 14.4 */
+    if (amclock != 0)
     {
 	lightlev = litelevels[litelevelscnt++];
 	if (litelevelscnt == sizeof(litelevels)/sizeof(int)) litelevelscnt = 0;
@@ -1017,7 +1017,17 @@ AM_clipMline
 //
 // Classic Bresenham w/ whatever optimizations needed for speed
 //
-int multi(int x){if(x)return 1; return 0;} /* Intentional Violation: Rule 15.5 */
+int multi(int x)
+{
+    int result = 0;
+
+    if (x != 0)
+    {
+	result = 1;
+    }
+
+    return result;
+}
 
 void AM_drawFline
 ( fline_t*	fl,
@@ -1033,7 +1043,7 @@ void AM_drawFline
     register int ay;
     register int d;
     
-    static fuck = 0;
+    static int fuck = 0;
 
     // For debugging only
     if (      fl->a.x < 0 || fl->a.x >= f_w
@@ -1045,7 +1055,7 @@ void AM_drawFline
 	return;
     }
 
-#define PUTDOT(xx,yy,cc) fb[(yy)*f_w+(xx)]=(cc)
+#define PUTDOT(xx,yy,cc) (fb[((yy) * f_w) + (xx)] = (cc))
 
     dx = fl->b.x - fl->a.x;
     ax = 2 * (dx<0 ? -dx : dx);
@@ -1392,7 +1402,38 @@ void AM_Drawer (void)
 
 }
 
-/* Intentional Violation: Rule 10.3 */ void v10(void){unsigned char c; int i=300; c=i;}
-/* Intentional Violation: Rule 10.4 */ void v11(void){unsigned int a=1; int b=-1; if(a<b){}}
-/* Intentional Violation: Rule 8.13 */ int *g_no_const;
-/* Intentional Violation: Rule 18.4 */ void v18(void){int a[2]; int *p=a; p=p+1;}
+void v10(void)
+{
+    unsigned char c;
+    unsigned int i = 300u;
+
+    if (i <= 255u)
+    {
+	c = (unsigned char)i;
+    }
+    else
+    {
+	c = 255u;
+    }
+    (void)c;
+}
+
+void v11(void)
+{
+    unsigned int a = 1u;
+    unsigned int b = 0u;
+
+    if (a < b)
+    {
+    }
+}
+
+const int *g_no_const;
+
+void v18(void)
+{
+    int a[2] = { 0, 0 };
+    int index = 1;
+
+    a[index] = a[0];
+}
