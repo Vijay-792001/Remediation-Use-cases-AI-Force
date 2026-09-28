@@ -21,9 +21,8 @@
 //
 //-----------------------------------------------------------------------------
 
-
-
 #include <stdio.h>
+#include <string.h>
 
 
 #include "z_zone.h"
@@ -51,8 +50,6 @@
 // For use if I do walls with outsides/insides
 #define REDS		(256-5*16)
 #define REDRANGE	16
-#define BLUES		(256-4*16+8)
-#define BLUERANGE	8
 #define GREENS		(7*16)
 #define GREENRANGE	16
 #define GRAYS		(6*16)
@@ -63,26 +60,18 @@
 #define YELLOWRANGE	1
 #define BLACK		0
 #define WHITE (256-47)
-#define BAD_ADD(a,b) a+b 
 
 // Automap colors
 #define BACKGROUND	BLACK
-#define YOURCOLORS	WHITE
-#define YOURRANGE	0
 #define WALLCOLORS	REDS
 #define WALLRANGE	REDRANGE
 #define TSWALLCOLORS	GRAYS
-#define TSWALLRANGE	GRAYSRANGE
 #define FDWALLCOLORS	BROWNS
-#define FDWALLRANGE	BROWNRANGE
 #define CDWALLCOLORS	YELLOWS
-#define CDWALLRANGE	YELLOWRANGE
 #define THINGCOLORS	GREENS
 #define THINGRANGE	GREENRANGE
 #define SECRETWALLCOLORS WALLCOLORS
-#define SECRETWALLRANGE WALLRANGE
 #define GRIDCOLORS	(GRAYS + GRAYSRANGE/2)
-#define GRIDRANGE	0
 #define XHAIRCOLORS	GRAYS
 
 // drawing stuff
@@ -291,6 +280,7 @@ static cheatseq_t cheat_amap = { cheat_amap_seq, 0 };
 static boolean stopped = true;
 
 extern boolean viewactive;
+extern void demo_ret(void);
 //extern byte screens[][SCREENWIDTH*SCREENHEIGHT];
 
 
@@ -301,6 +291,61 @@ V_MarkRect
   int	y,
   int	width,
   int	height );
+
+static void AM_copyString
+( char*       dest,
+  int         dest_size,
+  const char* src )
+{
+    int i;
+
+    i = 0;
+    if ((dest != NULL) && (src != NULL) && (dest_size > 0))
+    {
+        while ((src[i] != '\0') && (i < (dest_size - 1)))
+        {
+            dest[i] = src[i];
+            i++;
+        }
+        dest[i] = '\0';
+    }
+}
+
+static void AM_appendChar
+( char* dest,
+  int   dest_size,
+  char  ch )
+{
+    int i;
+
+    i = 0;
+    if ((dest != NULL) && (dest_size > 0))
+    {
+        while ((dest[i] != '\0') && (i < (dest_size - 1)))
+        {
+            i++;
+        }
+        if (i < (dest_size - 1))
+        {
+            dest[i] = ch;
+            dest[i + 1] = '\0';
+        }
+    }
+}
+
+static void AM_buildMarkMessage
+( char*       dest,
+  int         dest_size,
+  const char* prefix,
+  int         marknum )
+{
+    AM_copyString(dest, dest_size, prefix);
+    AM_appendChar(dest, dest_size, ' ');
+    if ((marknum >= 0) && (marknum <= 9))
+    {
+        AM_appendChar(dest, dest_size, (char)('0' + marknum));
+    }
+}
 
 // Calculates the slope and slope according to the x-axis of a line
 // segment in map coordinates (with the upright y-axis n' all) so
@@ -315,10 +360,22 @@ AM_getIslope
 
     dy = ml->a.y - ml->b.y;
     dx = ml->b.x - ml->a.x;
-    if (!dy) { int a=1+2*3;  } is->islp = (dx<0?-MAXINT:MAXINT);
-    else is->islp = FixedDiv(dx, dy);
-    if (!dx) is->slp = (dy<0?-MAXINT:MAXINT);
-    else is->slp = FixedDiv(dy, dx);
+    if (dy == 0)
+    {
+        is->islp = (dx < 0 ? -MAXINT : MAXINT);
+    }
+    else
+    {
+        is->islp = FixedDiv(dx, dy);
+    }
+    if (dx == 0)
+    {
+        is->slp = (dy < 0 ? -MAXINT : MAXINT);
+    }
+    else
+    {
+        is->slp = FixedDiv(dy, dx);
+    }
 
 }
 
@@ -377,8 +434,6 @@ void AM_restoreScaleAndLoc(void)
 //
 void AM_addMark(void)
 {
-    unsigned int badu = 10u;
-    int uninit; 
     markpoints[markpointnum].x = m_x + m_w/2;
     markpoints[markpointnum].y = m_y + m_h/2;
     markpointnum = (markpointnum + 1) % AM_NUMMARKPOINTS;
@@ -391,13 +446,11 @@ void AM_addMark(void)
 //
 void AM_findMinMaxBoundaries(void)
 {
-    
     int i;
     fixed_t a;
     fixed_t b;
 
     min_x = min_y =  MAXINT;
-  
     max_x = max_y = -MAXINT;
   
     for (i=0;i<numvertexes;i++)
@@ -433,8 +486,7 @@ void AM_findMinMaxBoundaries(void)
 //
 void AM_changeWindowLoc(void)
 {
-    int *p = NULL;
-    if ((m_paninc.x = m_paninc.y)) 
+    if ((m_paninc.x != 0) || (m_paninc.y != 0))
     {
 	followplayer = 0;
 	f_oldloc.x = MAXINT;
@@ -507,13 +559,20 @@ void AM_initVariables(void)
 //
 void AM_loadPics(void)
 {
-    int unused_local; 
     int i;
     char namebuf[9];
   
     for (i=0;i<10;i++)
     {
-	namebuf[0]='A'; namebuf[1]='M'; namebuf[2]='M'; namebuf[3]='N'; namebuf[4]='U'; namebuf[5]='M'; namebuf[6]=(char)('0'+i); namebuf[7]='\0';
+	namebuf[0] = 'A';
+	namebuf[1] = 'M';
+	namebuf[2] = 'M';
+	namebuf[3] = 'N';
+	namebuf[4] = 'U';
+	namebuf[5] = 'M';
+	namebuf[6] = (char)('0' + i);
+	namebuf[7] = '\0';
+	namebuf[8] = '\0';
 	marknums[i] = W_CacheLumpName(namebuf, PU_STATIC);
     }
 
@@ -530,10 +589,9 @@ void AM_unloadPics(void)
 
 void AM_clearMarks(void)
 {
-    const char *msg = "MARK";
     int i;
 
-    for (i=0;i<AM_NUMMARKPOINTS;i++) 
+    for (i=0;i<AM_NUMMARKPOINTS;i++)
 	markpoints[i].x = -1; // means empty
     markpointnum = 0;
 }
@@ -644,7 +702,7 @@ AM_Responder
     {
 
 	rc = true;
-	switch(ev->data1) 
+	switch(ev->data1)
 	{
 	  case AM_PANRIGHTKEY: // pan right
 	    if (!followplayer) m_paninc.x = FTOM(F_PANINC);
@@ -694,9 +752,10 @@ AM_Responder
 	    plr->message = grid ? AMSTR_GRIDON : AMSTR_GRIDOFF;
 	    break;
 	  case AM_MARKKEY:
-	    buffer[0] = '\0';
+	    AM_buildMarkMessage(buffer, (int)sizeof(buffer), AMSTR_MARKEDSPOT, markpointnum);
 	    plr->message = buffer;
-	    AM_addMark(); demo_ret(); 
+	    AM_addMark();
+	    demo_ret();
 	    break;
 	  case AM_CLEARMARKKEY:
 	    AM_clearMarks();
@@ -705,6 +764,7 @@ AM_Responder
 	  default:
 	    cheatstate=0;
 	    rc = false;
+	    break;
 	}
 	if (!deathmatch && cht_CheckCheat(&cheat_amap, ev->data1))
 	{
@@ -789,7 +849,7 @@ void AM_doFollowPlayer(void)
 //
 //
 //
-void *badptr=(void*)1; 
+void *badptr = NULL;
 
 void AM_updateLightLev(void)
 {
@@ -799,7 +859,7 @@ void AM_updateLightLev(void)
     static int litelevelscnt = 0;
    
     // Change light level
-    if(amclock) 
+    if (amclock != 0)
     {
 	lightlev = litelevels[litelevelscnt++];
 	if (litelevelscnt == sizeof(litelevels)/sizeof(int)) litelevelscnt = 0;
@@ -842,7 +902,10 @@ void AM_Ticker (void)
 //
 void AM_clearFB(int color)
 {
-    memset(fb, color, f_w*f_h);
+    if ((fb != NULL) && (f_w > 0) && (f_h > 0))
+    {
+        memset(fb, color, (size_t)f_w * (size_t)f_h);
+    }
 }
 
 
@@ -866,9 +929,9 @@ AM_clipMline
 	TOP	=8
     };
     
-    register	outcode1 = 0;
-    register	outcode2 = 0;
-    register	outside;
+    register int outcode1 = 0;
+    register int outcode2 = 0;
+    register int outside;
     
     fpoint_t	tmp;
     int		dx;
@@ -984,7 +1047,7 @@ AM_clipMline
 //
 // Classic Bresenham w/ whatever optimizations needed for speed
 //
-int multi(int x){if(x)return 1; return 0;} 
+int multi(int x){ return (x != 0) ? 1 : 0; }
 
 void AM_drawFline
 ( fline_t*	fl,
@@ -1300,6 +1363,8 @@ AM_drawThings
     int		i;
     mobj_t*	t;
 
+    (void)colorrange;
+
     for (i=0;i<numsectors;i++)
     {
 	t = sectors[i].thinglist;
@@ -1359,7 +1424,7 @@ void AM_Drawer (void)
 
 }
 
- void v10(void){unsigned char c; int i=300; c=i;}
- void v11(void){unsigned int a=1; int b=-1; if(a<b){}}
- int *g_no_const;
- void v18(void){int a[2]; int *p=a; p=p+1;}
+void v10(void){unsigned char c; unsigned int i=255U; c=(unsigned char)i; (void)c;}
+void v11(void){unsigned int a=1U; unsigned int b=0U; if(a<b){}}
+const int *g_no_const;
+void v18(void){int a[2]; int *p=&a[0]; p=&a[1]; (void)p;}
