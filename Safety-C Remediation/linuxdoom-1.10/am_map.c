@@ -105,8 +105,8 @@
 #define M_ZOOMOUT       ((int) (FRACUNIT/1.02))
 
 // translates between frame-buffer and map distances
-#define FTOM(x) FixedMul(((x)<<16),scale_ftom)
-#define MTOF(x) (FixedMul((x),scale_mtof)>>16)
+#define FTOM(x) AM_frameToMap((fixed_t)(x))
+#define MTOF(x) AM_mapToFrame((fixed_t)(x))
 // translates between frame-buffer and map coordinates
 #define CXMTOF(x)  (f_x + MTOF((x)-m_x))
 #define CYMTOF(y)  (f_y + (f_h - MTOF((y)-m_y)))
@@ -178,14 +178,6 @@ static const mline_t cheat_player_arrow[] = {
     { { CHEAT_PLAYER_ARROW_R/6+CHEAT_PLAYER_ARROW_R/32, -CHEAT_PLAYER_ARROW_R/7-CHEAT_PLAYER_ARROW_R/32 }, { CHEAT_PLAYER_ARROW_R/6+CHEAT_PLAYER_ARROW_R/10, -CHEAT_PLAYER_ARROW_R/7 } }
 };
 #define NUMCHEATPLYRLINES (sizeof(cheat_player_arrow)/sizeof(mline_t))
-
-#define TRIANGLE_GUY_R (FRACUNIT)
-static const mline_t triangle_guy[] = {
-    { { -.867*TRIANGLE_GUY_R, -.5*TRIANGLE_GUY_R }, { .867*TRIANGLE_GUY_R, -.5*TRIANGLE_GUY_R } },
-    { { .867*TRIANGLE_GUY_R, -.5*TRIANGLE_GUY_R } , { 0, TRIANGLE_GUY_R } },
-    { { 0, TRIANGLE_GUY_R }, { -.867*TRIANGLE_GUY_R, -.5*TRIANGLE_GUY_R } }
-};
-#define NUMTRIANGLEGUYLINES (sizeof(triangle_guy)/sizeof(mline_t))
 
 #define THIN_TRIANGLE_GUY_R (FRACUNIT)
 static const mline_t thintriangle_guy[] = {
@@ -285,6 +277,31 @@ V_MarkRect
   int   y,
   int   width,
   int   height );
+
+static fixed_t AM_frameToMap(fixed_t x)
+{
+    fixed_t shifted;
+
+    if (x > (MAXINT >> FRACBITS))
+    {
+        shifted = MAXINT;
+    }
+    else if (x < -(MAXINT >> FRACBITS))
+    {
+        shifted = -MAXINT;
+    }
+    else
+    {
+        shifted = x * FRACUNIT;
+    }
+
+    return FixedMul(shifted, scale_ftom);
+}
+
+static fixed_t AM_mapToFrame(fixed_t x)
+{
+    return FixedDiv(FixedMul(x, scale_mtof), FRACUNIT);
+}
 
 static void AM_makeMarkMessage(char *buffer, unsigned int buffer_size, const char *prefix, int mark_number)
 {
@@ -392,16 +409,21 @@ void AM_restoreScaleAndLoc(void)
         m_x = old_m_x;
         m_y = old_m_y;
     }
-    else
+    else if ((plr != NULL) && (plr->mo != NULL))
     {
         m_x = plr->mo->x - m_w/2;
         m_y = plr->mo->y - m_h/2;
+    }
+    else
+    {
+        m_x = old_m_x;
+        m_y = old_m_y;
     }
     m_x2 = m_x + m_w;
     m_y2 = m_y + m_h;
 
     // Change the scaling multipliers
-    scale_mtof = FixedDiv(f_w<<FRACBITS, m_w);
+    scale_mtof = FixedDiv(f_w*FRACUNIT, m_w);
     scale_ftom = FixedDiv(FRACUNIT, scale_mtof);
 }
 
@@ -480,11 +502,11 @@ void AM_findMinMaxBoundaries(void)
     min_w = 2*PLAYERRADIUS; // const? never changed?
     min_h = 2*PLAYERRADIUS;
 
-    a = FixedDiv(f_w<<FRACBITS, max_w);
-    b = FixedDiv(f_h<<FRACBITS, max_h);
+    a = FixedDiv(f_w*FRACUNIT, max_w);
+    b = FixedDiv(f_h*FRACUNIT, max_h);
   
     min_scale_mtof = a < b ? a : b;
-    max_scale_mtof = FixedDiv(f_h<<FRACBITS, 2*PLAYERRADIUS);
+    max_scale_mtof = FixedDiv(f_h*FRACUNIT, 2*PLAYERRADIUS);
 
 }
 
@@ -561,9 +583,10 @@ void AM_initVariables(void)
         }
     }
 
-    if (pnum >= MAXPLAYERS)
+    if ((pnum >= MAXPLAYERS) || (players[pnum].mo == NULL))
     {
         automapactive = false;
+        plr = NULL;
         return;
     }
   
@@ -612,7 +635,11 @@ void AM_unloadPics(void)
   
     for (i=0;i<10;i++)
     {
-        Z_ChangeTag(marknums[i], PU_CACHE);
+        if (marknums[i] != NULL)
+        {
+            Z_ChangeTag(marknums[i], PU_CACHE);
+            marknums[i] = NULL;
+        }
     }
 
 }
@@ -727,6 +754,11 @@ AM_Responder
 
     rc = false;
 
+    if (ev == NULL)
+    {
+        return false;
+    }
+
     if (automapactive == false)
     {
         if ((ev->type == ev_keydown) && (ev->data1 == AM_STARTKEY))
@@ -825,7 +857,10 @@ AM_Responder
                 followplayer = 0;
             }
             f_oldloc.x = MAXINT;
-            plr->message = (followplayer != 0) ? AMSTR_FOLLOWON : AMSTR_FOLLOWOFF;
+            if (plr != NULL)
+            {
+                plr->message = (followplayer != 0) ? AMSTR_FOLLOWON : AMSTR_FOLLOWOFF;
+            }
             break;
           case AM_GRIDKEY:
             if (grid == 0)
@@ -836,16 +871,25 @@ AM_Responder
             {
                 grid = 0;
             }
-            plr->message = (grid != 0) ? AMSTR_GRIDON : AMSTR_GRIDOFF;
+            if (plr != NULL)
+            {
+                plr->message = (grid != 0) ? AMSTR_GRIDON : AMSTR_GRIDOFF;
+            }
             break;
           case AM_MARKKEY:
             AM_makeMarkMessage(buffer, sizeof(buffer), AMSTR_MARKEDSPOT, markpointnum);
-            plr->message = buffer;
+            if (plr != NULL)
+            {
+                plr->message = buffer;
+            }
             AM_addMark();
             break;
           case AM_CLEARMARKKEY:
             AM_clearMarks();
-            plr->message = AMSTR_MARKSCLEARED;
+            if (plr != NULL)
+            {
+                plr->message = AMSTR_MARKSCLEARED;
+            }
             break;
           default:
             rc = false;
@@ -936,6 +980,11 @@ void AM_changeWindowScale(void)
 //
 void AM_doFollowPlayer(void)
 {
+
+    if ((plr == NULL) || (plr->mo == NULL))
+    {
+        return;
+    }
 
     if ((f_oldloc.x != plr->mo->x) || (f_oldloc.y != plr->mo->y))
     {
@@ -1053,13 +1102,17 @@ AM_clipMline
     int     dx;
     int     dy;
 
-    
+    if ((ml == NULL) || (fl == NULL) || (f_w <= 0) || (f_h <= 0))
+    {
+        return false;
+    }
+
 #define DOOUTCODE(oc, mx, my) \
     (oc) = 0; \
-    if ((my) < 0) (oc) |= TOP; \
-    else if ((my) >= f_h) (oc) |= BOTTOM; \
-    if ((mx) < 0) (oc) |= LEFT; \
-    else if ((mx) >= f_w) (oc) |= RIGHT;
+    if ((my) < 0) { (oc) |= TOP; } \
+    else if ((my) >= f_h) { (oc) |= BOTTOM; } \
+    if ((mx) < 0) { (oc) |= LEFT; } \
+    else if ((mx) >= f_w) { (oc) |= RIGHT; }
 
     
     // do trivial rejects and outcodes
@@ -1141,34 +1194,49 @@ AM_clipMline
         {
             dy = fl->a.y - fl->b.y;
             dx = fl->b.x - fl->a.x;
-            tmp.x = fl->a.x + (dx*(fl->a.y))/dy;
+            if (dy == 0)
+            {
+                return false;
+            }
+            tmp.x = fl->a.x + (int)(((long)dx * (long)fl->a.y) / (long)dy);
             tmp.y = 0;
         }
         else if ((outside & BOTTOM) != 0)
         {
             dy = fl->a.y - fl->b.y;
             dx = fl->b.x - fl->a.x;
-            tmp.x = fl->a.x + (dx*(fl->a.y-f_h))/dy;
+            if (dy == 0)
+            {
+                return false;
+            }
+            tmp.x = fl->a.x + (int)(((long)dx * (long)(fl->a.y-f_h)) / (long)dy);
             tmp.y = f_h-1;
         }
         else if ((outside & RIGHT) != 0)
         {
             dy = fl->b.y - fl->a.y;
             dx = fl->b.x - fl->a.x;
-            tmp.y = fl->a.y + (dy*(f_w-1 - fl->a.x))/dx;
+            if (dx == 0)
+            {
+                return false;
+            }
+            tmp.y = fl->a.y + (int)(((long)dy * (long)(f_w-1 - fl->a.x)) / (long)dx);
             tmp.x = f_w-1;
         }
         else if ((outside & LEFT) != 0)
         {
             dy = fl->b.y - fl->a.y;
             dx = fl->b.x - fl->a.x;
-            tmp.y = fl->a.y + (dy*(-fl->a.x))/dx;
+            if (dx == 0)
+            {
+                return false;
+            }
+            tmp.y = fl->a.y + (int)(((long)dy * (long)(-fl->a.x)) / (long)dx);
             tmp.x = 0;
         }
         else
         {
-            tmp.x = fl->a.x;
-            tmp.y = fl->a.y;
+            return false;
         }
 
         if (outside == outcode1)
@@ -1211,6 +1279,11 @@ void AM_drawFline
     register int d;
     int done;
     
+    if ((fl == NULL) || (fb == NULL))
+    {
+        return;
+    }
+
     // For debugging only
     if (      fl->a.x < 0 || fl->a.x >= f_w
        || fl->a.y < 0 || fl->a.y >= f_h
@@ -1310,17 +1383,17 @@ void AM_drawGrid(int color)
 
     // Figure out start of vertical gridlines
     start = m_x;
-    if (((start-bmaporgx)%(MAPBLOCKUNITS<<FRACBITS)) != 0)
+    if (((start-bmaporgx)%(MAPBLOCKUNITS*FRACUNIT)) != 0)
     {
-        start += (MAPBLOCKUNITS<<FRACBITS)
-            - ((start-bmaporgx)%(MAPBLOCKUNITS<<FRACBITS));
+        start += (MAPBLOCKUNITS*FRACUNIT)
+            - ((start-bmaporgx)%(MAPBLOCKUNITS*FRACUNIT));
     }
     end = m_x + m_w;
 
     // draw vertical gridlines
     ml.a.y = m_y;
     ml.b.y = m_y+m_h;
-    for (x=start; x<end; x+=(MAPBLOCKUNITS<<FRACBITS))
+    for (x=start; x<end; x+=(MAPBLOCKUNITS*FRACUNIT))
     {
         ml.a.x = x;
         ml.b.x = x;
@@ -1329,17 +1402,17 @@ void AM_drawGrid(int color)
 
     // Figure out start of horizontal gridlines
     start = m_y;
-    if (((start-bmaporgy)%(MAPBLOCKUNITS<<FRACBITS)) != 0)
+    if (((start-bmaporgy)%(MAPBLOCKUNITS*FRACUNIT)) != 0)
     {
-        start += (MAPBLOCKUNITS<<FRACBITS)
-            - ((start-bmaporgy)%(MAPBLOCKUNITS<<FRACBITS));
+        start += (MAPBLOCKUNITS*FRACUNIT)
+            - ((start-bmaporgy)%(MAPBLOCKUNITS*FRACUNIT));
     }
     end = m_y + m_h;
 
     // draw horizontal gridlines
     ml.a.x = m_x;
     ml.b.x = m_x + m_w;
-    for (y=start; y<end; y+=(MAPBLOCKUNITS<<FRACBITS))
+    for (y=start; y<end; y+=(MAPBLOCKUNITS*FRACUNIT))
     {
         ml.a.y = y;
         ml.b.y = y;
@@ -1356,6 +1429,11 @@ void AM_drawWalls(void)
 {
     int i;
     static mline_t l;
+
+    if (plr == NULL)
+    {
+        return;
+    }
 
     for (i=0;i<numlines;i++)
     {
@@ -1427,19 +1505,19 @@ AM_rotate
     fixed_t tmpx;
 
     tmpx =
-        FixedMul(*x,finecosine[a>>ANGLETOFINESHIFT])
-        - FixedMul(*y,finesine[a>>ANGLETOFINESHIFT]);
+        FixedMul(*x,finecosine[a/((angle_t)1 << ANGLETOFINESHIFT)])
+        - FixedMul(*y,finesine[a/((angle_t)1 << ANGLETOFINESHIFT)]);
     
     *y   =
-        FixedMul(*x,finesine[a>>ANGLETOFINESHIFT])
-        + FixedMul(*y,finecosine[a>>ANGLETOFINESHIFT]);
+        FixedMul(*x,finesine[a/((angle_t)1 << ANGLETOFINESHIFT)])
+        + FixedMul(*y,finecosine[a/((angle_t)1 << ANGLETOFINESHIFT)]);
 
     *x = tmpx;
 }
 
 void
 AM_drawLineCharacter
-( mline_t*  lineguy,
+( const mline_t*  lineguy,
   int       lineguylines,
   fixed_t  scale,
   angle_t  angle,
@@ -1449,6 +1527,11 @@ AM_drawLineCharacter
 {
     int     i;
     mline_t l;
+
+    if (lineguy == NULL)
+    {
+        return;
+    }
 
     for (i=0;i<lineguylines;i++)
     {
@@ -1498,18 +1581,23 @@ void AM_drawPlayers(void)
     int     their_color = -1;
     int     color;
 
+    if ((plr == NULL) || (plr->mo == NULL))
+    {
+        return;
+    }
+
     if (netgame == 0)
     {
         if (cheating != 0)
         {
             AM_drawLineCharacter
-                ((mline_t *)cheat_player_arrow, NUMCHEATPLYRLINES, 0,
+                (cheat_player_arrow, NUMCHEATPLYRLINES, 0,
                  plr->mo->angle, WHITE, plr->mo->x, plr->mo->y);
         }
         else
         {
             AM_drawLineCharacter
-                ((mline_t *)player_arrow, NUMPLYRLINES, 0, plr->mo->angle,
+                (player_arrow, NUMPLYRLINES, 0, plr->mo->angle,
                  WHITE, plr->mo->x, plr->mo->y);
         }
         return;
@@ -1525,7 +1613,7 @@ void AM_drawPlayers(void)
             continue;
         }
 
-        if (playeringame[i] == 0)
+        if ((playeringame[i] == 0) || (p->mo == NULL))
         {
             continue;
         }
@@ -1540,7 +1628,7 @@ void AM_drawPlayers(void)
         }
     
         AM_drawLineCharacter
-            ((mline_t *)player_arrow, NUMPLYRLINES, 0, p->mo->angle,
+            (player_arrow, NUMPLYRLINES, 0, p->mo->angle,
              color, p->mo->x, p->mo->y);
     }
 
@@ -1562,8 +1650,8 @@ AM_drawThings
         while (t != NULL)
         {
             AM_drawLineCharacter
-                ((mline_t *)thintriangle_guy, NUMTHINTRIANGLEGUYLINES,
-                 16<<FRACBITS, t->angle, colors+lightlev, t->x, t->y);
+                (thintriangle_guy, NUMTHINTRIANGLEGUYLINES,
+                 16*FRACUNIT, t->angle, colors+lightlev, t->x, t->y);
             t = t->snext;
         }
     }
@@ -1583,7 +1671,7 @@ void AM_drawMarks(void)
             h = 6; // because something's wrong with the wad, i guess
             fx = CXMTOF(markpoints[i].x);
             fy = CYMTOF(markpoints[i].y);
-            if ((fx >= f_x) && (fx <= f_w - w) && (fy >= f_y) && (fy <= f_h - h))
+            if ((fx >= f_x) && (fx <= f_w - w) && (fy >= f_y) && (fy <= f_h - h) && (marknums[i] != NULL))
             {
                 V_DrawPatch(fx, fy, FB, marknums[i]);
             }
@@ -1594,9 +1682,17 @@ void AM_drawMarks(void)
 
 void AM_drawCrosshair(int color)
 {
+    size_t index;
+    size_t size;
+
     if ((fb != NULL) && (f_w > 0) && (f_h > 0))
     {
-        fb[(f_w*(f_h+1))/2] = color; // single point for now
+        size = (size_t)f_w * (size_t)f_h;
+        index = ((size_t)f_w * ((size_t)f_h + 1U)) / 2U;
+        if (index < size)
+        {
+            fb[index] = color; // single point for now
+        }
     }
 
 }
