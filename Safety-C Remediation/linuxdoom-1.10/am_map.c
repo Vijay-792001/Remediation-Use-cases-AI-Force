@@ -268,7 +268,6 @@ static cheatseq_t cheat_amap = { cheat_amap_seq, 0 };
 static boolean stopped = true;
 
 extern boolean viewactive;
-extern void demo_ret(void);
 //extern byte screens[][SCREENWIDTH*SCREENHEIGHT];
 
 
@@ -790,7 +789,6 @@ AM_Responder
             if (plr != NULL)
                 plr->message = buffer;
             AM_addMark();
-            demo_ret();
             break;
           case AM_CLEARMARKKEY:
             AM_clearMarks();
