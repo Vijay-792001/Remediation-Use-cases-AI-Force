@@ -380,7 +380,7 @@ void AM_restoreScaleAndLoc(void)
 
     m_w = old_m_w;
     m_h = old_m_h;
-    if (!followplayer)
+    if (followplayer == 0)
     {
         m_x = old_m_x;
         m_y = old_m_y;
@@ -603,7 +603,13 @@ void AM_unloadPics(void)
     int i;
 
     for (i=0;i<10;i++)
-        Z_ChangeTag(marknums[i], PU_CACHE);
+    {
+        if (marknums[i] != NULL)
+        {
+            Z_ChangeTag(marknums[i], PU_CACHE);
+            marknums[i] = NULL;
+        }
+    }
 
 }
 
@@ -662,7 +668,7 @@ void AM_Start (void)
 {
     static int lastlevel = -1, lastepisode = -1;
 
-    if (!stopped) AM_Stop();
+    if (stopped == false) AM_Stop();
     stopped = false;
     if (lastlevel != gamemap || lastepisode != gameepisode)
     {
@@ -671,7 +677,7 @@ void AM_Start (void)
         lastepisode = gameepisode;
     }
     AM_initVariables();
-    if (automapactive)
+    if (automapactive != false)
     {
         AM_loadPics();
     }
@@ -719,9 +725,9 @@ AM_Responder
         return rc;
     }
 
-    if (!automapactive)
+    if (automapactive == false)
     {
-        if (ev->type == ev_keydown && ev->data1 == AM_STARTKEY)
+        if ((ev->type == ev_keydown) && (ev->data1 == AM_STARTKEY))
         {
             AM_Start ();
             viewactive = false;
@@ -736,19 +742,19 @@ AM_Responder
         switch(ev->data1)
         {
           case AM_PANRIGHTKEY: // pan right
-            if (!followplayer) m_paninc.x = FTOM(F_PANINC);
+            if (followplayer == 0) m_paninc.x = FTOM(F_PANINC);
             else rc = false;
             break;
           case AM_PANLEFTKEY: // pan left
-            if (!followplayer) m_paninc.x = -FTOM(F_PANINC);
+            if (followplayer == 0) m_paninc.x = -FTOM(F_PANINC);
             else rc = false;
             break;
           case AM_PANUPKEY: // pan up
-            if (!followplayer) m_paninc.y = FTOM(F_PANINC);
+            if (followplayer == 0) m_paninc.y = FTOM(F_PANINC);
             else rc = false;
             break;
           case AM_PANDOWNKEY: // pan down
-            if (!followplayer) m_paninc.y = -FTOM(F_PANINC);
+            if (followplayer == 0) m_paninc.y = -FTOM(F_PANINC);
             else rc = false;
             break;
           case AM_ZOOMOUTKEY: // zoom out
@@ -766,7 +772,7 @@ AM_Responder
             break;
           case AM_GOBIGKEY:
             bigstate = !bigstate;
-            if (bigstate)
+            if (bigstate != 0)
             {
                 AM_saveScaleAndLoc();
                 AM_minOutWindowScale();
@@ -799,7 +805,7 @@ AM_Responder
             rc = false;
             break;
         }
-        if (!deathmatch && cht_CheckCheat(&cheat_amap, ev->data1))
+        if ((deathmatch == 0) && (cht_CheckCheat(&cheat_amap, ev->data1) != 0))
         {
             rc = false;
             cheating = (cheating+1) % 3;
@@ -812,16 +818,16 @@ AM_Responder
         switch (ev->data1)
         {
           case AM_PANRIGHTKEY:
-            if (!followplayer) m_paninc.x = 0;
+            if (followplayer == 0) m_paninc.x = 0;
             break;
           case AM_PANLEFTKEY:
-            if (!followplayer) m_paninc.x = 0;
+            if (followplayer == 0) m_paninc.x = 0;
             break;
           case AM_PANUPKEY:
-            if (!followplayer) m_paninc.y = 0;
+            if (followplayer == 0) m_paninc.y = 0;
             break;
           case AM_PANDOWNKEY:
-            if (!followplayer) m_paninc.y = 0;
+            if (followplayer == 0) m_paninc.y = 0;
             break;
           case AM_ZOOMOUTKEY:
           case AM_ZOOMINKEY:
@@ -889,7 +895,6 @@ void AM_doFollowPlayer(void)
 
 void AM_updateLightLev(void)
 {
-    static int nexttic = 0;
     //static int litelevels[] = { 0, 3, 5, 6, 6, 7, 7, 7 };
     static int litelevels[] = { 0, 4, 7, 10, 12, 14, 15, 15 };
     static int litelevelscnt = 0;
@@ -899,7 +904,6 @@ void AM_updateLightLev(void)
     {
         lightlev = litelevels[litelevelscnt++];
         if (litelevelscnt == sizeof(litelevels)/sizeof(int)) litelevelscnt = 0;
-        nexttic = amclock + 6 - (amclock % 6);
     }
 
 }
@@ -911,12 +915,12 @@ void AM_updateLightLev(void)
 void AM_Ticker (void)
 {
 
-    if (!automapactive)
+    if (automapactive == false)
         return;
 
     amclock++;
 
-    if (followplayer)
+    if (followplayer != 0)
         AM_doFollowPlayer();
 
     // Change the zoom if necessary
@@ -998,7 +1002,7 @@ AM_clipMline
     else if (ml->b.y < m_y)
         outcode2 = BOTTOM;
 
-    if (outcode1 & outcode2)
+    if ((outcode1 & outcode2) != 0)
         return false; // trivially outside
 
     if (ml->a.x < m_x)
@@ -1011,7 +1015,7 @@ AM_clipMline
     else if (ml->b.x > m_x2)
         outcode2 |= RIGHT;
 
-    if (outcode1 & outcode2)
+    if ((outcode1 & outcode2) != 0)
         return false; // trivially outside
 
     // transform to frame-buffer coordinates.
@@ -1023,7 +1027,7 @@ AM_clipMline
     DOOUTCODE(outcode1, fl->a.x, fl->a.y);
     DOOUTCODE(outcode2, fl->b.x, fl->b.y);
 
-    if (outcode1 & outcode2)
+    if ((outcode1 & outcode2) != 0)
         return false;
 
     iterations = 0;
@@ -1038,7 +1042,7 @@ AM_clipMline
             outside = outcode2;
 
         // clip to each side
-        if (outside & TOP)
+        if ((outside & TOP) != 0)
         {
             dy = fl->a.y - fl->b.y;
             dx = fl->b.x - fl->a.x;
@@ -1047,7 +1051,7 @@ AM_clipMline
             tmp.x = fl->a.x + (dx*(fl->a.y))/dy;
             tmp.y = 0;
         }
-        else if (outside & BOTTOM)
+        else if ((outside & BOTTOM) != 0)
         {
             dy = fl->a.y - fl->b.y;
             dx = fl->b.x - fl->a.x;
@@ -1056,7 +1060,7 @@ AM_clipMline
             tmp.x = fl->a.x + (dx*(fl->a.y-f_h))/dy;
             tmp.y = f_h-1;
         }
-        else if (outside & RIGHT)
+        else if ((outside & RIGHT) != 0)
         {
             dy = fl->b.y - fl->a.y;
             dx = fl->b.x - fl->a.x;
@@ -1065,7 +1069,7 @@ AM_clipMline
             tmp.y = fl->a.y + (dy*(f_w-1 - fl->a.x))/dx;
             tmp.x = f_w-1;
         }
-        else if (outside & LEFT)
+        else if ((outside & LEFT) != 0)
         {
             dy = fl->b.y - fl->a.y;
             dx = fl->b.x - fl->a.x;
@@ -1090,7 +1094,7 @@ AM_clipMline
             DOOUTCODE(outcode2, fl->b.x, fl->b.y);
         }
 
-        if (outcode1 & outcode2)
+        if ((outcode1 & outcode2) != 0)
             return false; // trivially outside
     }
 
@@ -1274,11 +1278,11 @@ void AM_drawWalls(void)
         l.a.y = lines[i].v1->y;
         l.b.x = lines[i].v2->x;
         l.b.y = lines[i].v2->y;
-        if (cheating || (lines[i].flags & ML_MAPPED))
+        if ((cheating != 0) || ((lines[i].flags & ML_MAPPED) != 0))
         {
-            if ((lines[i].flags & LINE_NEVERSEE) && !cheating)
+            if (((lines[i].flags & LINE_NEVERSEE) != 0) && (cheating == 0))
                 continue;
-            if (!lines[i].backsector)
+            if (lines[i].backsector == NULL)
             {
                 AM_drawMline(&l, WALLCOLORS+lightlev);
             }
@@ -1288,9 +1292,9 @@ void AM_drawWalls(void)
                 { // teleporters
                     AM_drawMline(&l, WALLCOLORS+WALLRANGE/2);
                 }
-                else if (lines[i].flags & ML_SECRET) // secret door
+                else if ((lines[i].flags & ML_SECRET) != 0) // secret door
                 {
-                    if (cheating) AM_drawMline(&l, SECRETWALLCOLORS + lightlev);
+                    if (cheating != 0) AM_drawMline(&l, SECRETWALLCOLORS + lightlev);
                     else AM_drawMline(&l, WALLCOLORS+lightlev);
                 }
                 else if (lines[i].backsector->floorheight
@@ -1301,14 +1305,14 @@ void AM_drawWalls(void)
                        != lines[i].frontsector->ceilingheight) {
                     AM_drawMline(&l, CDWALLCOLORS+lightlev); // ceiling level change
                 }
-                else if (cheating) {
+                else if (cheating != 0) {
                     AM_drawMline(&l, TSWALLCOLORS+lightlev);
                 }
             }
         }
-        else if (plr->powers[pw_allmap])
+        else if ((plr != NULL) && (plr->powers[pw_allmap] != 0))
         {
-            if (!(lines[i].flags & LINE_NEVERSEE)) AM_drawMline(&l, GRAYS+3);
+            if ((lines[i].flags & LINE_NEVERSEE) == 0) AM_drawMline(&l, GRAYS+3);
         }
     }
 }
@@ -1404,9 +1408,9 @@ void AM_drawPlayers(void)
         return;
     }
 
-    if (!netgame)
+    if (netgame == 0)
     {
-        if (cheating)
+        if (cheating != 0)
             AM_drawLineCharacter
                 (cheat_player_arrow, NUMCHEATPLYRLINES, 0,
                  plr->mo->angle, WHITE, plr->mo->x, plr->mo->y);
@@ -1422,16 +1426,16 @@ void AM_drawPlayers(void)
         their_color++;
         p = &players[i];
 
-        if ( (deathmatch && !singledemo) && p != plr)
+        if (((deathmatch != 0) && (singledemo == 0)) && (p != plr))
             continue;
 
-        if (!playeringame[i])
+        if (playeringame[i] == 0)
             continue;
 
         if (p->mo == NULL)
             continue;
 
-        if (p->powers[pw_invisibility])
+        if (p->powers[pw_invisibility] != 0)
             color = 246; // *close* to black
         else
             color = their_colors[their_color];
@@ -1456,7 +1460,7 @@ AM_drawThings
     for (i=0;i<numsectors;i++)
     {
         t = sectors[i].thinglist;
-        while (t)
+        while (t != NULL)
         {
             AM_drawLineCharacter
                 (thintriangle_guy, NUMTHINTRIANGLEGUYLINES,
@@ -1500,10 +1504,10 @@ void AM_drawCrosshair(int color)
 
 void AM_Drawer (void)
 {
-    if (!automapactive) return;
+    if (automapactive == false) return;
 
     AM_clearFB(BACKGROUND);
-    if (grid)
+    if (grid != 0)
         AM_drawGrid(GRIDCOLORS);
     AM_drawWalls();
     AM_drawPlayers();
