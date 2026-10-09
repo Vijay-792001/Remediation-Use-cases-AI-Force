@@ -1068,6 +1068,7 @@ void AM_drawFline
 
     if (ax > ay)
     {
+    d = ay - ax/2;
     PUTDOT(x,y,color);
     while (x != fl->b.x)
     {
