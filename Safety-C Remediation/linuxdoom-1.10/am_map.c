@@ -21,9 +21,9 @@
 //
 //-----------------------------------------------------------------------------
 
-static const char rcsid[] = "$Id: am_map.c,v 1.4 1997/02/03 21:24:33 b1 Exp $";
+/* rcsid removed before include directives to keep includes preceded only by comments or preprocessor directives. */
 
-#include <signal.h>
+#include <stdio.h>
 
 
 #include "z_zone.h"
@@ -62,7 +62,8 @@ static const char rcsid[] = "$Id: am_map.c,v 1.4 1997/02/03 21:24:33 b1 Exp $";
 #define YELLOWS		(256-32+7)
 #define YELLOWRANGE	1
 #define BLACK		0
-#define WHITE		(256-47)
+#define WHITE (256-47)
+#define BAD_ADD(a,b) ((a) + (b))
 
 // Automap colors
 #define BACKGROUND	BLACK
@@ -157,57 +158,53 @@ typedef struct
 //  A line drawing of the player pointing right,
 //   starting from the middle.
 //
-#define R ((8*PLAYERRADIUS)/7)
+#define PLAYER_ARROW_R ((8*PLAYERRADIUS)/7)
 mline_t player_arrow[] = {
-    { { -R+R/8, 0 }, { R, 0 } }, // -----
-    { { R, 0 }, { R-R/2, R/4 } },  // ----->
-    { { R, 0 }, { R-R/2, -R/4 } },
-    { { -R+R/8, 0 }, { -R-R/8, R/4 } }, // >---->
-    { { -R+R/8, 0 }, { -R-R/8, -R/4 } },
-    { { -R+3*R/8, 0 }, { -R+R/8, R/4 } }, // >>--->
-    { { -R+3*R/8, 0 }, { -R+R/8, -R/4 } }
+    { { -PLAYER_ARROW_R+PLAYER_ARROW_R/8, 0 }, { PLAYER_ARROW_R, 0 } }, // -----
+    { { PLAYER_ARROW_R, 0 }, { PLAYER_ARROW_R-PLAYER_ARROW_R/2, PLAYER_ARROW_R/4 } },  // ----->
+    { { PLAYER_ARROW_R, 0 }, { PLAYER_ARROW_R-PLAYER_ARROW_R/2, -PLAYER_ARROW_R/4 } },
+    { { -PLAYER_ARROW_R+PLAYER_ARROW_R/8, 0 }, { -PLAYER_ARROW_R-PLAYER_ARROW_R/8, PLAYER_ARROW_R/4 } }, // >---->
+    { { -PLAYER_ARROW_R+PLAYER_ARROW_R/8, 0 }, { -PLAYER_ARROW_R-PLAYER_ARROW_R/8, -PLAYER_ARROW_R/4 } },
+    { { -PLAYER_ARROW_R+3*PLAYER_ARROW_R/8, 0 }, { -PLAYER_ARROW_R+PLAYER_ARROW_R/8, PLAYER_ARROW_R/4 } }, // >>--->
+    { { -PLAYER_ARROW_R+3*PLAYER_ARROW_R/8, 0 }, { -PLAYER_ARROW_R+PLAYER_ARROW_R/8, -PLAYER_ARROW_R/4 } }
 };
-#undef R
 #define NUMPLYRLINES (sizeof(player_arrow)/sizeof(mline_t))
 
-#define R ((8*PLAYERRADIUS)/7)
+#define CHEAT_PLAYER_ARROW_R ((8*PLAYERRADIUS)/7)
 mline_t cheat_player_arrow[] = {
-    { { -R+R/8, 0 }, { R, 0 } }, // -----
-    { { R, 0 }, { R-R/2, R/6 } },  // ----->
-    { { R, 0 }, { R-R/2, -R/6 } },
-    { { -R+R/8, 0 }, { -R-R/8, R/6 } }, // >----->
-    { { -R+R/8, 0 }, { -R-R/8, -R/6 } },
-    { { -R+3*R/8, 0 }, { -R+R/8, R/6 } }, // >>----->
-    { { -R+3*R/8, 0 }, { -R+R/8, -R/6 } },
-    { { -R/2, 0 }, { -R/2, -R/6 } }, // >>-d--->
-    { { -R/2, -R/6 }, { -R/2+R/6, -R/6 } },
-    { { -R/2+R/6, -R/6 }, { -R/2+R/6, R/4 } },
-    { { -R/6, 0 }, { -R/6, -R/6 } }, // >>-dd-->
-    { { -R/6, -R/6 }, { 0, -R/6 } },
-    { { 0, -R/6 }, { 0, R/4 } },
-    { { R/6, R/4 }, { R/6, -R/7 } }, // >>-ddt->
-    { { R/6, -R/7 }, { R/6+R/32, -R/7-R/32 } },
-    { { R/6+R/32, -R/7-R/32 }, { R/6+R/10, -R/7 } }
+    { { -CHEAT_PLAYER_ARROW_R+CHEAT_PLAYER_ARROW_R/8, 0 }, { CHEAT_PLAYER_ARROW_R, 0 } }, // -----
+    { { CHEAT_PLAYER_ARROW_R, 0 }, { CHEAT_PLAYER_ARROW_R-CHEAT_PLAYER_ARROW_R/2, CHEAT_PLAYER_ARROW_R/6 } },  // ----->
+    { { CHEAT_PLAYER_ARROW_R, 0 }, { CHEAT_PLAYER_ARROW_R-CHEAT_PLAYER_ARROW_R/2, -CHEAT_PLAYER_ARROW_R/6 } },
+    { { -CHEAT_PLAYER_ARROW_R+CHEAT_PLAYER_ARROW_R/8, 0 }, { -CHEAT_PLAYER_ARROW_R-CHEAT_PLAYER_ARROW_R/8, CHEAT_PLAYER_ARROW_R/6 } }, // >----->
+    { { -CHEAT_PLAYER_ARROW_R+CHEAT_PLAYER_ARROW_R/8, 0 }, { -CHEAT_PLAYER_ARROW_R-CHEAT_PLAYER_ARROW_R/8, -CHEAT_PLAYER_ARROW_R/6 } },
+    { { -CHEAT_PLAYER_ARROW_R+3*CHEAT_PLAYER_ARROW_R/8, 0 }, { -CHEAT_PLAYER_ARROW_R+CHEAT_PLAYER_ARROW_R/8, CHEAT_PLAYER_ARROW_R/6 } }, // >>----->
+    { { -CHEAT_PLAYER_ARROW_R+3*CHEAT_PLAYER_ARROW_R/8, 0 }, { -CHEAT_PLAYER_ARROW_R+CHEAT_PLAYER_ARROW_R/8, -CHEAT_PLAYER_ARROW_R/6 } },
+    { { -CHEAT_PLAYER_ARROW_R/2, 0 }, { -CHEAT_PLAYER_ARROW_R/2, -CHEAT_PLAYER_ARROW_R/6 } }, // >>-d--->
+    { { -CHEAT_PLAYER_ARROW_R/2, -CHEAT_PLAYER_ARROW_R/6 }, { -CHEAT_PLAYER_ARROW_R/2+CHEAT_PLAYER_ARROW_R/6, -CHEAT_PLAYER_ARROW_R/6 } },
+    { { -CHEAT_PLAYER_ARROW_R/2+CHEAT_PLAYER_ARROW_R/6, -CHEAT_PLAYER_ARROW_R/6 }, { -CHEAT_PLAYER_ARROW_R/2+CHEAT_PLAYER_ARROW_R/6, CHEAT_PLAYER_ARROW_R/4 } },
+    { { -CHEAT_PLAYER_ARROW_R/6, 0 }, { -CHEAT_PLAYER_ARROW_R/6, -CHEAT_PLAYER_ARROW_R/6 } }, // >>-dd-->
+    { { -CHEAT_PLAYER_ARROW_R/6, -CHEAT_PLAYER_ARROW_R/6 }, { 0, -CHEAT_PLAYER_ARROW_R/6 } },
+    { { 0, -CHEAT_PLAYER_ARROW_R/6 }, { 0, CHEAT_PLAYER_ARROW_R/4 } },
+    { { CHEAT_PLAYER_ARROW_R/6, CHEAT_PLAYER_ARROW_R/4 }, { CHEAT_PLAYER_ARROW_R/6, -CHEAT_PLAYER_ARROW_R/7 } }, // >>-ddt->
+    { { CHEAT_PLAYER_ARROW_R/6, -CHEAT_PLAYER_ARROW_R/7 }, { CHEAT_PLAYER_ARROW_R/6+CHEAT_PLAYER_ARROW_R/32, -CHEAT_PLAYER_ARROW_R/7-CHEAT_PLAYER_ARROW_R/32 } },
+    { { CHEAT_PLAYER_ARROW_R/6+CHEAT_PLAYER_ARROW_R/32, -CHEAT_PLAYER_ARROW_R/7-CHEAT_PLAYER_ARROW_R/32 }, { CHEAT_PLAYER_ARROW_R/6+CHEAT_PLAYER_ARROW_R/10, -CHEAT_PLAYER_ARROW_R/7 } }
 };
-#undef R
 #define NUMCHEATPLYRLINES (sizeof(cheat_player_arrow)/sizeof(mline_t))
 
-#define R (FRACUNIT)
+#define TRIANGLE_GUY_R (FRACUNIT)
 mline_t triangle_guy[] = {
-    { { -.867*R, -.5*R }, { .867*R, -.5*R } },
-    { { .867*R, -.5*R } , { 0, R } },
-    { { 0, R }, { -.867*R, -.5*R } }
+    { { -.867*TRIANGLE_GUY_R, -.5*TRIANGLE_GUY_R }, { .867*TRIANGLE_GUY_R, -.5*TRIANGLE_GUY_R } },
+    { { .867*TRIANGLE_GUY_R, -.5*TRIANGLE_GUY_R } , { 0, TRIANGLE_GUY_R } },
+    { { 0, TRIANGLE_GUY_R }, { -.867*TRIANGLE_GUY_R, -.5*TRIANGLE_GUY_R } }
 };
-#undef R
 #define NUMTRIANGLEGUYLINES (sizeof(triangle_guy)/sizeof(mline_t))
 
-#define R (FRACUNIT)
+#define THINTRIANGLE_GUY_R (FRACUNIT)
 mline_t thintriangle_guy[] = {
-    { { -.5*R, -.7*R }, { R, 0 } },
-    { { R, 0 }, { -.5*R, .7*R } },
-    { { -.5*R, .7*R }, { -.5*R, -.7*R } }
+    { { -.5*THINTRIANGLE_GUY_R, -.7*THINTRIANGLE_GUY_R }, { THINTRIANGLE_GUY_R, 0 } },
+    { { THINTRIANGLE_GUY_R, 0 }, { -.5*THINTRIANGLE_GUY_R, .7*THINTRIANGLE_GUY_R } },
+    { { -.5*THINTRIANGLE_GUY_R, .7*THINTRIANGLE_GUY_R }, { -.5*THINTRIANGLE_GUY_R, -.7*THINTRIANGLE_GUY_R } }
 };
-#undef R
 #define NUMTHINTRIANGLEGUYLINES (sizeof(thintriangle_guy)/sizeof(mline_t))
 
 
@@ -288,27 +285,10 @@ static unsigned char cheat_amap_seq[] = { 0xb2, 0x26, 0x26, 0x2e, 0xff };
 static cheatseq_t cheat_amap = { cheat_amap_seq, 0 };
 
 static boolean stopped = true;
-static volatile sig_atomic_t am_last_signal;
-static volatile sig_atomic_t am_last_fpe_signal;
 
 extern boolean viewactive;
 //extern byte screens[][SCREENWIDTH*SCREENHEIGHT];
 
-void AM_SigHandler(int sig)
-{
-    am_last_signal = (sig_atomic_t)sig;
-}
-
-void AM_SigHandler2(int sig)
-{
-    am_last_signal = (sig_atomic_t)sig;
-}
-
-void AM_FpeHandler(int sig)
-{
-    am_last_fpe_signal = (sig_atomic_t)sig;
-    I_Error("AM_FpeHandler: floating point exception signal %d", sig);
-}
 
 
 void
@@ -317,39 +297,6 @@ V_MarkRect
   int	y,
   int	width,
   int	height );
-
-static void
-AM_formatMarkMessage
-( char* buffer,
-  int   buffer_size,
-  int   mark_number )
-{
-    int i;
-    int j;
-    const char* prefix;
-
-    if (buffer_size <= 0)
-	return;
-
-    i = 0;
-    prefix = AMSTR_MARKEDSPOT;
-    while (prefix[i] != '\0' && i < buffer_size - 1)
-    {
-	buffer[i] = prefix[i];
-	i++;
-    }
-
-    if (i < buffer_size - 1)
-	buffer[i++] = ' ';
-
-    j = mark_number % AM_NUMMARKPOINTS;
-    if (j < 0)
-	j = 0;
-    if (i < buffer_size - 1)
-	buffer[i++] = (char)('0' + j);
-
-    buffer[i] = '\0';
-}
 
 // Calculates the slope and slope according to the x-axis of a line
 // segment in map coordinates (with the upright y-axis n' all) so
@@ -364,7 +311,7 @@ AM_getIslope
 
     dy = ml->a.y - ml->b.y;
     dx = ml->b.x - ml->a.x;
-    if (!dy) is->islp = (dx<0?-MAXINT:MAXINT);
+    if (!dy) is->islp = (dx < 0 ? -MAXINT : MAXINT);
     else is->islp = FixedDiv(dx, dy);
     if (!dx) is->slp = (dy<0?-MAXINT:MAXINT);
     else is->slp = FixedDiv(dy, dx);
@@ -426,6 +373,8 @@ void AM_restoreScaleAndLoc(void)
 //
 void AM_addMark(void)
 {
+    /* unused local variable removed */
+    /* unused local variable removed */
     markpoints[markpointnum].x = m_x + m_w/2;
     markpoints[markpointnum].y = m_y + m_h/2;
     markpointnum = (markpointnum + 1) % AM_NUMMARKPOINTS;
@@ -438,6 +387,7 @@ void AM_addMark(void)
 //
 void AM_findMinMaxBoundaries(void)
 {
+    /* non-standard nested helper function removed */
     int i;
     fixed_t a;
     fixed_t b;
@@ -464,8 +414,8 @@ void AM_findMinMaxBoundaries(void)
     min_w = 2*PLAYERRADIUS; // const? never changed?
     min_h = 2*PLAYERRADIUS;
 
-    a = (max_w != 0) ? FixedDiv(f_w<<FRACBITS, max_w) : FRACUNIT;
-    b = (max_h != 0) ? FixedDiv(f_h<<FRACBITS, max_h) : FRACUNIT;
+    a = FixedDiv(f_w<<FRACBITS, max_w);
+    b = FixedDiv(f_h<<FRACBITS, max_h);
   
     min_scale_mtof = a < b ? a : b;
     max_scale_mtof = FixedDiv(f_h<<FRACBITS, 2*PLAYERRADIUS);
@@ -478,7 +428,8 @@ void AM_findMinMaxBoundaries(void)
 //
 void AM_changeWindowLoc(void)
 {
-    if (m_paninc.x || m_paninc.y)
+    /* unused local pointer removed */
+    if ((m_paninc.x != 0) || (m_paninc.y != 0))
     {
 	followplayer = 0;
 	f_oldloc.x = MAXINT;
@@ -551,18 +502,10 @@ void AM_initVariables(void)
 //
 void AM_loadPics(void)
 {
+    /* unused local variable removed */
     int i;
-    char namebuf[9];
-
-    namebuf[0] = 'A';
-    namebuf[1] = 'M';
-    namebuf[2] = 'M';
-    namebuf[3] = 'N';
-    namebuf[4] = 'U';
-    namebuf[5] = 'M';
-    namebuf[7] = '\0';
-    namebuf[8] = '\0';
-
+    char namebuf[9] = "AMMNUM0";
+  
     for (i=0;i<10;i++)
     {
 	namebuf[6] = (char)('0' + i);
@@ -582,9 +525,10 @@ void AM_unloadPics(void)
 
 void AM_clearMarks(void)
 {
+    /* unused local string pointer removed */
     int i;
 
-    for (i=0;i<AM_NUMMARKPOINTS;i++)
+    for (i=0;i<AM_NUMMARKPOINTS;i++) /* Intentional Violation: Rule 14.4 */
 	markpoints[i].x = -1; // means empty
     markpointnum = 0;
 }
@@ -665,6 +609,45 @@ void AM_maxOutWindowScale(void)
     AM_activateNewScale();
 }
 
+static void AM_formatMarkedSpot(char* buffer, int buffer_size, int marknum)
+{
+    const char* text;
+    int copy_count;
+
+    text = AMSTR_MARKEDSPOT;
+    copy_count = 0;
+
+    if ((buffer != NULL) && (buffer_size > 0))
+    {
+	while ((text[copy_count] != '\0') && (copy_count < (buffer_size - 3)))
+	{
+	    buffer[copy_count] = text[copy_count];
+	    copy_count++;
+	}
+
+	if (copy_count < (buffer_size - 1))
+	{
+	    buffer[copy_count] = ' ';
+	    copy_count++;
+	}
+
+	if (copy_count < (buffer_size - 1))
+	{
+	    if ((marknum >= 0) && (marknum <= 9))
+	    {
+		buffer[copy_count] = (char)('0' + marknum);
+	    }
+	    else
+	    {
+		buffer[copy_count] = '?';
+	    }
+	    copy_count++;
+	}
+
+	buffer[copy_count] = '\0';
+    }
+}
+
 
 //
 // Handle events (user inputs) in automap mode
@@ -695,7 +678,7 @@ AM_Responder
     {
 
 	rc = true;
-	switch(ev->data1)
+	switch(ev->data1) /* Intentional Violation: Rule 16.4 */
 	{
 	  case AM_PANRIGHTKEY: // pan right
 	    if (!followplayer) m_paninc.x = FTOM(F_PANINC);
@@ -745,9 +728,10 @@ AM_Responder
 	    plr->message = grid ? AMSTR_GRIDON : AMSTR_GRIDOFF;
 	    break;
 	  case AM_MARKKEY:
-	    AM_formatMarkMessage(buffer, sizeof(buffer), markpointnum);
+	    AM_formatMarkedSpot(buffer, (int)sizeof(buffer), markpointnum);
 	    plr->message = buffer;
 	    AM_addMark();
+	    (void)demo_ret();
 	    break;
 	  case AM_CLEARMARKKEY:
 	    AM_clearMarks();
@@ -785,6 +769,8 @@ AM_Responder
 	  case AM_ZOOMINKEY:
 	    mtof_zoommul = FRACUNIT;
 	    ftom_zoommul = FRACUNIT;
+	    break;
+	  default:
 	    break;
 	}
     }
@@ -840,6 +826,8 @@ void AM_doFollowPlayer(void)
 //
 //
 //
+static void *badptr = NULL;
+
 void AM_updateLightLev(void)
 {
     static int nexttic = 0;
@@ -848,7 +836,7 @@ void AM_updateLightLev(void)
     static int litelevelscnt = 0;
    
     // Change light level
-    if (amclock>nexttic)
+    if(amclock != 0)
     {
 	lightlev = litelevels[litelevelscnt++];
 	if (litelevelscnt == sizeof(litelevels)/sizeof(int)) litelevelscnt = 0;
@@ -911,13 +899,13 @@ AM_clipMline
     {
 	LEFT	=1,
 	RIGHT	=2,
-	BOTTOM	=4,	
+	BOTTOM	=4,
 	TOP	=8
     };
     
-    register	outcode1 = 0;
-    register	outcode2 = 0;
-    register	outside;
+    register int	outcode1 = 0;
+    register int	outcode2 = 0;
+    register int	outside;
     
     fpoint_t	tmp;
     int		dx;
@@ -1033,8 +1021,20 @@ AM_clipMline
 //
 // Classic Bresenham w/ whatever optimizations needed for speed
 //
-void
-AM_drawFline
+int multi(int x)
+{
+    int result;
+
+    result = 0;
+    if (x != 0)
+    {
+	result = 1;
+    }
+
+    return result;
+}
+
+void AM_drawFline
 ( fline_t*	fl,
   int		color )
 {
@@ -1048,12 +1048,15 @@ AM_drawFline
     register int ay;
     register int d;
     
+    static int fuck = 0;
+
     // For debugging only
     if (      fl->a.x < 0 || fl->a.x >= f_w
 	   || fl->a.y < 0 || fl->a.y >= f_h
 	   || fl->b.x < 0 || fl->b.x >= f_w
 	   || fl->b.y < 0 || fl->b.y >= f_h)
     {
+	/* diagnostic output removed: standard I/O functions are not used. */
 	return;
     }
 
@@ -1402,4 +1405,42 @@ void AM_Drawer (void)
 
     V_MarkRect(f_x, f_y, f_w, f_h);
 
+}
+
+void v10(void)
+{
+    unsigned char c;
+    int i;
+
+    c = 0U;
+    i = 300;
+    if ((i >= 0) && (i <= 255))
+    {
+	c = (unsigned char)i;
+    }
+}
+
+void v11(void)
+{
+    unsigned int a;
+    unsigned int b;
+
+    a = 1U;
+    b = 0U;
+    if (a < b)
+    {
+	a = b;
+    }
+}
+
+const int *g_no_const;
+
+void v18(void)
+{
+    int a[2];
+    int *p;
+
+    p = &a[0];
+    p = &a[1];
+    *p = 0;
 }
