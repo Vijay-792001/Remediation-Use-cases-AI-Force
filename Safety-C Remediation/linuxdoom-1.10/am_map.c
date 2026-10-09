@@ -21,7 +21,8 @@
 //
 //-----------------------------------------------------------------------------
 
-#include <stdio.h>
+static const char rcsid[] = "$Id: am_map.c,v 1.4 1997/02/03 21:24:33 b1 Exp $";
+
 #include <signal.h>
 
 
@@ -45,14 +46,6 @@
 #include "dstrings.h"
 
 #include "am_map.h"
-
-#define SHOWNUM(x) printf("%d\n", x)
-
-#ifdef DOOM2
-#define AM_GRID_DEBUG_VALUE 1
-#else
-#define AM_GRID_DEBUG_VALUE 0
-#endif
 
 
 // For use if I do walls with outsides/insides
@@ -223,6 +216,8 @@ mline_t thintriangle_guy[] = {
 static int 	cheating = 0;
 static int 	grid = 0;
 
+static int 	leveljuststarted = 1; 	// kluge until AM_LevelInit() is called
+
 boolean    	automapactive = false;
 static int 	finit_width = SCREENWIDTH;
 static int 	finit_height = SCREENHEIGHT - 32;
@@ -323,6 +318,39 @@ V_MarkRect
   int	width,
   int	height );
 
+static void
+AM_formatMarkMessage
+( char* buffer,
+  int   buffer_size,
+  int   mark_number )
+{
+    int i;
+    int j;
+    const char* prefix;
+
+    if (buffer_size <= 0)
+	return;
+
+    i = 0;
+    prefix = AMSTR_MARKEDSPOT;
+    while (prefix[i] != '\0' && i < buffer_size - 1)
+    {
+	buffer[i] = prefix[i];
+	i++;
+    }
+
+    if (i < buffer_size - 1)
+	buffer[i++] = ' ';
+
+    j = mark_number % AM_NUMMARKPOINTS;
+    if (j < 0)
+	j = 0;
+    if (i < buffer_size - 1)
+	buffer[i++] = (char)('0' + j);
+
+    buffer[i] = '\0';
+}
+
 // Calculates the slope and slope according to the x-axis of a line
 // segment in map coordinates (with the upright y-axis n' all) so
 // that it can be used with the brain-dead drawing stuff.
@@ -414,44 +442,30 @@ void AM_findMinMaxBoundaries(void)
     fixed_t a;
     fixed_t b;
 
-    if (numvertexes <= 0)
-    {
-	min_x = -PLAYERRADIUS;
-	min_y = -PLAYERRADIUS;
-	max_x = PLAYERRADIUS;
-	max_y = PLAYERRADIUS;
-    }
-    else
-    {
-	min_x = min_y =  MAXINT;
-	max_x = max_y = -MAXINT;
+    min_x = min_y =  MAXINT;
+    max_x = max_y = -MAXINT;
   
-	for (i=0;i<numvertexes;i++)
-	{
-	    if (vertexes[i].x < min_x)
-		min_x = vertexes[i].x;
-	    else if (vertexes[i].x > max_x)
-		max_x = vertexes[i].x;
+    for (i=0;i<numvertexes;i++)
+    {
+	if (vertexes[i].x < min_x)
+	    min_x = vertexes[i].x;
+	else if (vertexes[i].x > max_x)
+	    max_x = vertexes[i].x;
     
-	    if (vertexes[i].y < min_y)
-		min_y = vertexes[i].y;
-	    else if (vertexes[i].y > max_y)
-		max_y = vertexes[i].y;
-	}
+	if (vertexes[i].y < min_y)
+	    min_y = vertexes[i].y;
+	else if (vertexes[i].y > max_y)
+	    max_y = vertexes[i].y;
     }
   
     max_w = max_x - min_x;
     max_h = max_y - min_y;
-    if (max_w <= 0)
-	max_w = 1;
-    if (max_h <= 0)
-	max_h = 1;
 
     min_w = 2*PLAYERRADIUS; // const? never changed?
     min_h = 2*PLAYERRADIUS;
 
-    a = FixedDiv(f_w<<FRACBITS, max_w);
-    b = FixedDiv(f_h<<FRACBITS, max_h);
+    a = (max_w != 0) ? FixedDiv(f_w<<FRACBITS, max_w) : FRACUNIT;
+    b = (max_h != 0) ? FixedDiv(f_h<<FRACBITS, max_h) : FRACUNIT;
   
     min_scale_mtof = a < b ? a : b;
     max_scale_mtof = FixedDiv(f_h<<FRACBITS, 2*PLAYERRADIUS);
@@ -515,12 +529,6 @@ void AM_initVariables(void)
 	for (pnum=0;pnum<MAXPLAYERS;pnum++)
 	    if (playeringame[pnum])
 		break;
-
-    if (pnum >= MAXPLAYERS || !playeringame[pnum] || players[pnum].mo == NULL)
-    {
-	automapactive = false;
-	return;
-    }
   
     plr = &players[pnum];
     m_x = plr->mo->x - m_w/2;
@@ -546,9 +554,18 @@ void AM_loadPics(void)
     int i;
     char namebuf[9];
 
+    namebuf[0] = 'A';
+    namebuf[1] = 'M';
+    namebuf[2] = 'M';
+    namebuf[3] = 'N';
+    namebuf[4] = 'U';
+    namebuf[5] = 'M';
+    namebuf[7] = '\0';
+    namebuf[8] = '\0';
+
     for (i=0;i<10;i++)
     {
-	sprintf(namebuf, "AMMNUM%d", i);
+	namebuf[6] = (char)('0' + i);
 	marknums[i] = W_CacheLumpName(namebuf, PU_STATIC);
     }
 
@@ -578,6 +595,8 @@ void AM_clearMarks(void)
 //
 void AM_LevelInit(void)
 {
+    leveljuststarted = 0;
+
     f_x = f_y = 0;
     f_w = finit_width;
     f_h = finit_height;
@@ -656,6 +675,7 @@ AM_Responder
 {
 
     int rc;
+    static int cheatstate=0;
     static int bigstate=0;
     static char buffer[20];
 
@@ -725,10 +745,7 @@ AM_Responder
 	    plr->message = grid ? AMSTR_GRIDON : AMSTR_GRIDOFF;
 	    break;
 	  case AM_MARKKEY:
-	    if (snprintf(buffer, sizeof(buffer), "%s %d", AMSTR_MARKEDSPOT, markpointnum) < 0)
-		buffer[0] = '\0';
-	    else
-		buffer[sizeof(buffer) - 1] = '\0';
+	    AM_formatMarkMessage(buffer, sizeof(buffer), markpointnum);
 	    plr->message = buffer;
 	    AM_addMark();
 	    break;
@@ -737,6 +754,7 @@ AM_Responder
 	    plr->message = AMSTR_MARKSCLEARED;
 	    break;
 	  default:
+	    cheatstate=0;
 	    rc = false;
 	}
 	if (!deathmatch && cht_CheckCheat(&cheat_amap, ev->data1))
@@ -893,7 +911,7 @@ AM_clipMline
     {
 	LEFT	=1,
 	RIGHT	=2,
-	BOTTOM	=4,
+	BOTTOM	=4,	
 	TOP	=8
     };
     
@@ -1030,15 +1048,12 @@ AM_drawFline
     register int ay;
     register int d;
     
-    static int fuck = 0;
-
     // For debugging only
     if (      fl->a.x < 0 || fl->a.x >= f_w
 	   || fl->a.y < 0 || fl->a.y >= f_h
 	   || fl->b.x < 0 || fl->b.x >= f_w
 	   || fl->b.y < 0 || fl->b.y >= f_h)
     {
-	fprintf(stderr, "fuck %d \r", fuck++);
 	return;
     }
 
@@ -1114,8 +1129,6 @@ void AM_drawGrid(int color)
     fixed_t x, y;
     fixed_t start, end;
     mline_t ml;
-
-    SHOWNUM(AM_GRID_DEBUG_VALUE);
 
     // Figure out start of vertical gridlines
     start = m_x;
@@ -1331,8 +1344,6 @@ AM_drawThings
 {
     int		i;
     mobj_t*	t;
-
-    (void)colorrange;
 
     for (i=0;i<numsectors;i++)
     {
