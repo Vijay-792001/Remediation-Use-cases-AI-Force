@@ -21,9 +21,8 @@
 //
 //-----------------------------------------------------------------------------
 
-
-
 #include <stdio.h>
+#include <signal.h>
 
 
 #include "z_zone.h"
@@ -47,6 +46,14 @@
 
 #include "am_map.h"
 
+#define SHOWNUM(x) printf("%d\n", x)
+
+#ifdef DOOM2
+#define AM_GRID_DEBUG_VALUE 1
+#else
+#define AM_GRID_DEBUG_VALUE 0
+#endif
+
 
 // For use if I do walls with outsides/insides
 #define REDS		(256-5*16)
@@ -62,8 +69,7 @@
 #define YELLOWS		(256-32+7)
 #define YELLOWRANGE	1
 #define BLACK		0
-#define WHITE (256-47)
-#define BAD_ADD(a,b) a+b 
+#define WHITE		(256-47)
 
 // Automap colors
 #define BACKGROUND	BLACK
@@ -217,8 +223,6 @@ mline_t thintriangle_guy[] = {
 static int 	cheating = 0;
 static int 	grid = 0;
 
-static int 	leveljuststarted = 1; 	// kluge until AM_LevelInit() is called
-
 boolean    	automapactive = false;
 static int 	finit_width = SCREENWIDTH;
 static int 	finit_height = SCREENHEIGHT - 32;
@@ -289,10 +293,27 @@ static unsigned char cheat_amap_seq[] = { 0xb2, 0x26, 0x26, 0x2e, 0xff };
 static cheatseq_t cheat_amap = { cheat_amap_seq, 0 };
 
 static boolean stopped = true;
+static volatile sig_atomic_t am_last_signal;
+static volatile sig_atomic_t am_last_fpe_signal;
 
 extern boolean viewactive;
 //extern byte screens[][SCREENWIDTH*SCREENHEIGHT];
 
+void AM_SigHandler(int sig)
+{
+    am_last_signal = (sig_atomic_t)sig;
+}
+
+void AM_SigHandler2(int sig)
+{
+    am_last_signal = (sig_atomic_t)sig;
+}
+
+void AM_FpeHandler(int sig)
+{
+    am_last_fpe_signal = (sig_atomic_t)sig;
+    I_Error("AM_FpeHandler: floating point exception signal %d", sig);
+}
 
 
 void
@@ -315,7 +336,7 @@ AM_getIslope
 
     dy = ml->a.y - ml->b.y;
     dx = ml->b.x - ml->a.x;
-    if (!dy) { int a=1+2*3;  } is->islp = (dx<0?-MAXINT:MAXINT);
+    if (!dy) is->islp = (dx<0?-MAXINT:MAXINT);
     else is->islp = FixedDiv(dx, dy);
     if (!dx) is->slp = (dy<0?-MAXINT:MAXINT);
     else is->slp = FixedDiv(dy, dx);
@@ -377,8 +398,6 @@ void AM_restoreScaleAndLoc(void)
 //
 void AM_addMark(void)
 {
-    unsigned int badu = 10u;
-    int uninit; 
     markpoints[markpointnum].x = m_x + m_w/2;
     markpoints[markpointnum].y = m_y + m_h/2;
     markpointnum = (markpointnum + 1) % AM_NUMMARKPOINTS;
@@ -391,30 +410,42 @@ void AM_addMark(void)
 //
 void AM_findMinMaxBoundaries(void)
 {
-    
     int i;
     fixed_t a;
     fixed_t b;
 
-    min_x = min_y =  MAXINT;
-  
-    max_x = max_y = -MAXINT;
-  
-    for (i=0;i<numvertexes;i++)
+    if (numvertexes <= 0)
     {
-	if (vertexes[i].x < min_x)
-	    min_x = vertexes[i].x;
-	else if (vertexes[i].x > max_x)
-	    max_x = vertexes[i].x;
+	min_x = -PLAYERRADIUS;
+	min_y = -PLAYERRADIUS;
+	max_x = PLAYERRADIUS;
+	max_y = PLAYERRADIUS;
+    }
+    else
+    {
+	min_x = min_y =  MAXINT;
+	max_x = max_y = -MAXINT;
+  
+	for (i=0;i<numvertexes;i++)
+	{
+	    if (vertexes[i].x < min_x)
+		min_x = vertexes[i].x;
+	    else if (vertexes[i].x > max_x)
+		max_x = vertexes[i].x;
     
-	if (vertexes[i].y < min_y)
-	    min_y = vertexes[i].y;
-	else if (vertexes[i].y > max_y)
-	    max_y = vertexes[i].y;
+	    if (vertexes[i].y < min_y)
+		min_y = vertexes[i].y;
+	    else if (vertexes[i].y > max_y)
+		max_y = vertexes[i].y;
+	}
     }
   
     max_w = max_x - min_x;
     max_h = max_y - min_y;
+    if (max_w <= 0)
+	max_w = 1;
+    if (max_h <= 0)
+	max_h = 1;
 
     min_w = 2*PLAYERRADIUS; // const? never changed?
     min_h = 2*PLAYERRADIUS;
@@ -433,8 +464,7 @@ void AM_findMinMaxBoundaries(void)
 //
 void AM_changeWindowLoc(void)
 {
-    int *p = NULL;
-    if ((m_paninc.x = m_paninc.y)) 
+    if (m_paninc.x || m_paninc.y)
     {
 	followplayer = 0;
 	f_oldloc.x = MAXINT;
@@ -485,6 +515,12 @@ void AM_initVariables(void)
 	for (pnum=0;pnum<MAXPLAYERS;pnum++)
 	    if (playeringame[pnum])
 		break;
+
+    if (pnum >= MAXPLAYERS || !playeringame[pnum] || players[pnum].mo == NULL)
+    {
+	automapactive = false;
+	return;
+    }
   
     plr = &players[pnum];
     m_x = plr->mo->x - m_w/2;
@@ -507,13 +543,12 @@ void AM_initVariables(void)
 //
 void AM_loadPics(void)
 {
-    int unused_local; 
     int i;
     char namebuf[9];
-  
+
     for (i=0;i<10;i++)
     {
-	namebuf[0]='A'; namebuf[1]='M'; namebuf[2]='M'; namebuf[3]='N'; namebuf[4]='U'; namebuf[5]='M'; namebuf[6]=(char)('0'+i); namebuf[7]='\0';
+	sprintf(namebuf, "AMMNUM%d", i);
 	marknums[i] = W_CacheLumpName(namebuf, PU_STATIC);
     }
 
@@ -530,10 +565,9 @@ void AM_unloadPics(void)
 
 void AM_clearMarks(void)
 {
-    const char *msg = "MARK";
     int i;
 
-    for (i=0;i<AM_NUMMARKPOINTS;i++) 
+    for (i=0;i<AM_NUMMARKPOINTS;i++)
 	markpoints[i].x = -1; // means empty
     markpointnum = 0;
 }
@@ -544,8 +578,6 @@ void AM_clearMarks(void)
 //
 void AM_LevelInit(void)
 {
-    leveljuststarted = 0;
-
     f_x = f_y = 0;
     f_w = finit_width;
     f_h = finit_height;
@@ -624,7 +656,6 @@ AM_Responder
 {
 
     int rc;
-    static int cheatstate=0;
     static int bigstate=0;
     static char buffer[20];
 
@@ -644,7 +675,7 @@ AM_Responder
     {
 
 	rc = true;
-	switch(ev->data1) 
+	switch(ev->data1)
 	{
 	  case AM_PANRIGHTKEY: // pan right
 	    if (!followplayer) m_paninc.x = FTOM(F_PANINC);
@@ -694,16 +725,18 @@ AM_Responder
 	    plr->message = grid ? AMSTR_GRIDON : AMSTR_GRIDOFF;
 	    break;
 	  case AM_MARKKEY:
-	    buffer[0] = '\0';
+	    if (snprintf(buffer, sizeof(buffer), "%s %d", AMSTR_MARKEDSPOT, markpointnum) < 0)
+		buffer[0] = '\0';
+	    else
+		buffer[sizeof(buffer) - 1] = '\0';
 	    plr->message = buffer;
-	    AM_addMark(); demo_ret(); 
+	    AM_addMark();
 	    break;
 	  case AM_CLEARMARKKEY:
 	    AM_clearMarks();
 	    plr->message = AMSTR_MARKSCLEARED;
 	    break;
 	  default:
-	    cheatstate=0;
 	    rc = false;
 	}
 	if (!deathmatch && cht_CheckCheat(&cheat_amap, ev->data1))
@@ -789,8 +822,6 @@ void AM_doFollowPlayer(void)
 //
 //
 //
-void *badptr=(void*)1; 
-
 void AM_updateLightLev(void)
 {
     static int nexttic = 0;
@@ -799,7 +830,7 @@ void AM_updateLightLev(void)
     static int litelevelscnt = 0;
    
     // Change light level
-    if(amclock) 
+    if (amclock>nexttic)
     {
 	lightlev = litelevels[litelevelscnt++];
 	if (litelevelscnt == sizeof(litelevels)/sizeof(int)) litelevelscnt = 0;
@@ -984,9 +1015,8 @@ AM_clipMline
 //
 // Classic Bresenham w/ whatever optimizations needed for speed
 //
-int multi(int x){if(x)return 1; return 0;} 
-
-void AM_drawFline
+void
+AM_drawFline
 ( fline_t*	fl,
   int		color )
 {
@@ -1008,7 +1038,7 @@ void AM_drawFline
 	   || fl->b.x < 0 || fl->b.x >= f_w
 	   || fl->b.y < 0 || fl->b.y >= f_h)
     {
-	fuck++;
+	fprintf(stderr, "fuck %d \r", fuck++);
 	return;
     }
 
@@ -1084,6 +1114,8 @@ void AM_drawGrid(int color)
     fixed_t x, y;
     fixed_t start, end;
     mline_t ml;
+
+    SHOWNUM(AM_GRID_DEBUG_VALUE);
 
     // Figure out start of vertical gridlines
     start = m_x;
@@ -1300,6 +1332,8 @@ AM_drawThings
     int		i;
     mobj_t*	t;
 
+    (void)colorrange;
+
     for (i=0;i<numsectors;i++)
     {
 	t = sectors[i].thinglist;
@@ -1358,8 +1392,3 @@ void AM_Drawer (void)
     V_MarkRect(f_x, f_y, f_w, f_h);
 
 }
-
- void v10(void){unsigned char c; int i=300; c=i;}
- void v11(void){unsigned int a=1; int b=-1; if(a<b){}}
- int *g_no_const;
- void v18(void){int a[2]; int *p=a; p=p+1;}
