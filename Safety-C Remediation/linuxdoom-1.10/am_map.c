@@ -1204,7 +1204,7 @@ void AM_drawWalls(void)
         { // teleporters
             AM_drawMline(&l, WALLCOLORS+WALLRANGE/2);
         }
-        else if (lines[i].flags & ML_SECRET) // secret door
+        else if ((lines[i].flags & ML_SECRET) != 0) // secret door
         {
             if (cheating != 0) AM_drawMline(&l, SECRETWALLCOLORS + lightlev);
             else AM_drawMline(&l, WALLCOLORS+lightlev);
@@ -1222,7 +1222,7 @@ void AM_drawWalls(void)
         }
         }
     }
-    else if (plr->powers[pw_allmap])
+    else if (plr->powers[pw_allmap] != 0)
     {
         if ((lines[i].flags & LINE_NEVERSEE) == 0) AM_drawMline(&l, GRAYS+3);
     }
@@ -1236,9 +1236,9 @@ void AM_drawWalls(void)
 //
 void
 AM_rotate
-( fixed_t*  x,
-  fixed_t*  y,
-  angle_t   a )
+( fixed_t* x,
+  fixed_t* y,
+  angle_t  a )
 {
     fixed_t tmpx;
 
@@ -1255,7 +1255,7 @@ AM_rotate
 
 void
 AM_drawLineCharacter
-( mline_t*  lineguy,
+( mline_t* lineguy,
   int       lineguylines,
   fixed_t   scale,
   angle_t   angle,
@@ -1277,7 +1277,7 @@ AM_drawLineCharacter
         l.a.y = FixedMul(scale, l.a.y);
     }
 
-    if (angle != 0)
+    if (angle != 0U)
         AM_rotate(&l.a.x, &l.a.y, angle);
 
     l.a.x += x;
@@ -1292,7 +1292,7 @@ AM_drawLineCharacter
         l.b.y = FixedMul(scale, l.b.y);
     }
 
-    if (angle != 0)
+    if (angle != 0U)
         AM_rotate(&l.b.x, &l.b.y, angle);
     
     l.b.x += x;
@@ -1348,11 +1348,21 @@ void AM_drawPlayers(void)
 
 void
 AM_drawThings
-( int  colors,
-  int  colorrange)
+( int   colors,
+  int   colorrange )
 {
     int     i;
+    int     thingcolor;
     mobj_t* t;
+
+    if (colorrange > 0)
+    {
+    thingcolor = colors + (lightlev % colorrange);
+    }
+    else
+    {
+    thingcolor = colors;
+    }
 
     for (i=0;i<numsectors;i++)
     {
@@ -1361,7 +1371,7 @@ AM_drawThings
     {
         AM_drawLineCharacter
         (thintriangle_guy, NUMTHINTRIANGLEGUYLINES,
-         16<<FRACBITS, t->angle, colors+lightlev, t->x, t->y);
+         16<<FRACBITS, t->angle, thingcolor, t->x, t->y);
         t = t->snext;
     }
     }
@@ -1396,14 +1406,17 @@ void AM_drawCrosshair(int color)
 
 void AM_Drawer (void)
 {
-    if (!automapactive) return;
+    if (automapactive == false)
+    {
+        return;
+    }
 
     AM_clearFB(BACKGROUND);
     if (grid != 0)
     AM_drawGrid(GRIDCOLORS);
     AM_drawWalls();
     AM_drawPlayers();
-    if (cheating==2)
+    if (cheating == 2)
     AM_drawThings(THINGCOLORS, THINGRANGE);
     AM_drawCrosshair(XHAIRCOLORS);
 
