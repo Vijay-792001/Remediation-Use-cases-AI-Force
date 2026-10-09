@@ -279,7 +279,6 @@ static cheatseq_t cheat_amap = { cheat_amap_seq, 0 };
 static boolean stopped = true;
 
 extern boolean viewactive;
-extern void demo_ret(void);
 //extern byte screens[][SCREENWIDTH*SCREENHEIGHT];
 
 
@@ -401,7 +400,7 @@ void AM_restoreScaleAndLoc(void)
 
     m_w = old_m_w;
     m_h = old_m_h;
-    if (!followplayer)
+    if (followplayer == 0)
     {
     m_x = old_m_x;
     m_y = old_m_y;
@@ -444,17 +443,26 @@ void AM_findMinMaxBoundaries(void)
     {
     if (vertexes[i].x < min_x)
         min_x = vertexes[i].x;
-    else if (vertexes[i].x > max_x)
+    if (vertexes[i].x > max_x)
         max_x = vertexes[i].x;
     
     if (vertexes[i].y < min_y)
         min_y = vertexes[i].y;
-    else if (vertexes[i].y > max_y)
+    if (vertexes[i].y > max_y)
         max_y = vertexes[i].y;
     }
   
     max_w = max_x - min_x;
     max_h = max_y - min_y;
+
+    if (max_w == 0)
+    {
+        max_w = 1;
+    }
+    if (max_h == 0)
+    {
+        max_h = 1;
+    }
 
     min_w = 2*PLAYERRADIUS; // const? never changed?
     min_h = 2*PLAYERRADIUS;
@@ -520,10 +528,19 @@ void AM_initVariables(void)
     m_h = FTOM(f_h);
 
     // find player to center on initially
-    if (!playeringame[pnum = consoleplayer])
+    pnum = consoleplayer;
+    if ((pnum < 0) || (pnum >= MAXPLAYERS) || (playeringame[pnum] == 0))
+    {
     for (pnum=0;pnum<MAXPLAYERS;pnum++)
-        if (playeringame[pnum])
+        if (playeringame[pnum] != 0)
         break;
+    }
+
+    if (pnum == MAXPLAYERS)
+    {
+    automapactive = false;
+    return;
+    }
   
     plr = &players[pnum];
     m_x = plr->mo->x - m_w/2;
@@ -627,7 +644,7 @@ void AM_Start (void)
 {
     static int lastlevel = -1, lastepisode = -1;
 
-    if (!stopped) AM_Stop();
+    if (stopped == false) AM_Stop();
     stopped = false;
     if (lastlevel != gamemap || lastepisode != gameepisode)
     {
@@ -674,7 +691,7 @@ AM_Responder
 
     rc = false;
 
-    if (!automapactive)
+    if (automapactive == false)
     {
     if (ev->type == ev_keydown && ev->data1 == AM_STARTKEY)
     {
@@ -691,19 +708,19 @@ AM_Responder
     switch(ev->data1)
     {
       case AM_PANRIGHTKEY: // pan right
-        if (!followplayer) m_paninc.x = FTOM(F_PANINC);
+        if (followplayer == 0) m_paninc.x = FTOM(F_PANINC);
         else rc = false;
         break;
       case AM_PANLEFTKEY: // pan left
-        if (!followplayer) m_paninc.x = -FTOM(F_PANINC);
+        if (followplayer == 0) m_paninc.x = -FTOM(F_PANINC);
         else rc = false;
         break;
       case AM_PANUPKEY: // pan up
-        if (!followplayer) m_paninc.y = FTOM(F_PANINC);
+        if (followplayer == 0) m_paninc.y = FTOM(F_PANINC);
         else rc = false;
         break;
       case AM_PANDOWNKEY: // pan down
-        if (!followplayer) m_paninc.y = -FTOM(F_PANINC);
+        if (followplayer == 0) m_paninc.y = -FTOM(F_PANINC);
         else rc = false;
         break;
       case AM_ZOOMOUTKEY: // zoom out
@@ -741,7 +758,6 @@ AM_Responder
         AM_BuildMarkedSpotMessage(buffer, (int)sizeof(buffer), markpointnum);
         plr->message = buffer;
         AM_addMark();
-        demo_ret();
         break;
       case AM_CLEARMARKKEY:
         AM_clearMarks();
@@ -751,7 +767,7 @@ AM_Responder
         rc = false;
         break;
     }
-    if (!deathmatch && cht_CheckCheat(&cheat_amap, ev->data1))
+    if ((deathmatch == 0) && cht_CheckCheat(&cheat_amap, ev->data1))
     {
         rc = false;
         cheating = (cheating+1) % 3;
@@ -764,16 +780,16 @@ AM_Responder
     switch (ev->data1)
     {
       case AM_PANRIGHTKEY:
-        if (!followplayer) m_paninc.x = 0;
+        if (followplayer == 0) m_paninc.x = 0;
         break;
       case AM_PANLEFTKEY:
-        if (!followplayer) m_paninc.x = 0;
+        if (followplayer == 0) m_paninc.x = 0;
         break;
       case AM_PANUPKEY:
-        if (!followplayer) m_paninc.y = 0;
+        if (followplayer == 0) m_paninc.y = 0;
         break;
       case AM_PANDOWNKEY:
-        if (!followplayer) m_paninc.y = 0;
+        if (followplayer == 0) m_paninc.y = 0;
         break;
       case AM_ZOOMOUTKEY:
         mtof_zoommul = FRACUNIT;
@@ -861,12 +877,12 @@ void AM_updateLightLev(void)
 void AM_Ticker (void)
 {
 
-    if (!automapactive)
+    if (automapactive == false)
     return;
 
     amclock++;
 
-    if (followplayer)
+    if (followplayer != 0)
     AM_doFollowPlayer();
 
     // Change the zoom if necessary
@@ -874,7 +890,7 @@ void AM_Ticker (void)
     AM_changeWindowScale();
 
     // Change x,y location
-    if (m_paninc.x || m_paninc.y)
+    if ((m_paninc.x != 0) || (m_paninc.y != 0))
     AM_changeWindowLoc();
 
     // Update light level
@@ -1337,10 +1353,21 @@ void AM_drawPlayers(void)
 
 void
 AM_drawThings
-( int   colors )
+( int   colors,
+  int   colorrange )
 {
     int     i;
+    int     thingcolor;
     mobj_t* t;
+
+    if (colorrange > 0)
+    {
+    thingcolor = colors + (lightlev % colorrange);
+    }
+    else
+    {
+    thingcolor = colors;
+    }
 
     for (i=0;i<numsectors;i++)
     {
@@ -1349,7 +1376,7 @@ AM_drawThings
     {
         AM_drawLineCharacter
         (thintriangle_guy, NUMTHINTRIANGLEGUYLINES,
-         16<<FRACBITS, t->angle, colors+lightlev, t->x, t->y);
+         16<<FRACBITS, t->angle, thingcolor, t->x, t->y);
         t = t->snext;
     }
     }
@@ -1387,12 +1414,12 @@ void AM_Drawer (void)
     if (automapactive == false) return;
 
     AM_clearFB(BACKGROUND);
-    if (grid)
+    if (grid != 0)
     AM_drawGrid(GRIDCOLORS);
     AM_drawWalls();
     AM_drawPlayers();
     if (cheating==2)
-    AM_drawThings(THINGCOLORS);
+    AM_drawThings(THINGCOLORS, THINGRANGE);
     AM_drawCrosshair(XHAIRCOLORS);
 
     AM_drawMarks();
