@@ -21,7 +21,6 @@
 //
 //-----------------------------------------------------------------------------
 
-#include <stdio.h>
 #include <string.h>
 
 #include "z_zone.h"
@@ -204,8 +203,6 @@ mline_t thintriangle_guy[] = {
 
 static int  cheating = 0;
 static int  grid = 0;
-
-static int  leveljuststarted = 1;    // kluge until AM_LevelInit() is called
 
 boolean     automapactive = false;
 static int  finit_width = SCREENWIDTH;
@@ -606,8 +603,6 @@ void AM_clearMarks(void)
 //
 void AM_LevelInit(void)
 {
-    leveljuststarted = 0;
-
     f_x = f_y = 0;
     f_w = finit_width;
     f_h = finit_height;
@@ -1411,14 +1406,17 @@ void AM_drawCrosshair(int color)
 
 void AM_Drawer (void)
 {
-    if (automapactive == false) return;
+    if (automapactive == false)
+    {
+        return;
+    }
 
     AM_clearFB(BACKGROUND);
     if (grid != 0)
     AM_drawGrid(GRIDCOLORS);
     AM_drawWalls();
     AM_drawPlayers();
-    if (cheating==2)
+    if (cheating == 2)
     AM_drawThings(THINGCOLORS, THINGRANGE);
     AM_drawCrosshair(XHAIRCOLORS);
 
