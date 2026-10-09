@@ -23,7 +23,6 @@
 
 #include <string.h>
 
-
 #include "z_zone.h"
 #include "doomdef.h"
 #include "st_stuff.h"
@@ -49,8 +48,6 @@
 // For use if I do walls with outsides/insides
 #define REDS        (256-5*16)
 #define REDRANGE    16
-#define BLUES       (256-4*16+8)
-#define BLUERANGE   8
 #define GREENS      (7*16)
 #define GREENRANGE  16
 #define GRAYS       (6*16)
@@ -60,44 +57,37 @@
 #define YELLOWS     (256-32+7)
 #define YELLOWRANGE 1
 #define BLACK       0
-#define WHITE (256-47)
+#define WHITE       (256-47)
 
 // Automap colors
-#define BACKGROUND  BLACK
-#define YOURCOLORS  WHITE
-#define YOURRANGE   0
-#define WALLCOLORS  REDS
-#define WALLRANGE   REDRANGE
+#define BACKGROUND      BLACK
+#define WALLCOLORS      REDS
+#define WALLRANGE       REDRANGE
 #define TSWALLCOLORS    GRAYS
-#define TSWALLRANGE GRAYSRANGE
 #define FDWALLCOLORS    BROWNS
-#define FDWALLRANGE BROWNRANGE
 #define CDWALLCOLORS    YELLOWS
-#define CDWALLRANGE YELLOWRANGE
-#define THINGCOLORS GREENS
-#define THINGRANGE  GREENRANGE
+#define THINGCOLORS     GREENS
+#define THINGRANGE      GREENRANGE
 #define SECRETWALLCOLORS WALLCOLORS
-#define SECRETWALLRANGE WALLRANGE
-#define GRIDCOLORS  (GRAYS + GRAYSRANGE/2)
-#define GRIDRANGE   0
-#define XHAIRCOLORS GRAYS
+#define GRIDCOLORS      (GRAYS + GRAYSRANGE/2)
+#define XHAIRCOLORS     GRAYS
 
 // drawing stuff
-#define FB      0
+#define FB              0
 
-#define AM_PANDOWNKEY  KEY_DOWNARROW
-#define AM_PANUPKEY    KEY_UPARROW
-#define AM_PANRIGHTKEY KEY_RIGHTARROW
-#define AM_PANLEFTKEY  KEY_LEFTARROW
-#define AM_ZOOMINKEY   '='
-#define AM_ZOOMOUTKEY  '-'
-#define AM_STARTKEY    KEY_TAB
-#define AM_ENDKEY      KEY_TAB
-#define AM_GOBIGKEY    '0'
-#define AM_FOLLOWKEY   'f'
-#define AM_GRIDKEY     'g'
-#define AM_MARKKEY     'm'
-#define AM_CLEARMARKKEY    'c'
+#define AM_PANDOWNKEY   KEY_DOWNARROW
+#define AM_PANUPKEY     KEY_UPARROW
+#define AM_PANRIGHTKEY  KEY_RIGHTARROW
+#define AM_PANLEFTKEY   KEY_LEFTARROW
+#define AM_ZOOMINKEY    '='
+#define AM_ZOOMOUTKEY   '-'
+#define AM_STARTKEY     KEY_TAB
+#define AM_ENDKEY       KEY_TAB
+#define AM_GOBIGKEY     '0'
+#define AM_FOLLOWKEY    'f'
+#define AM_GRIDKEY      'g'
+#define AM_MARKKEY      'm'
+#define AM_CLEARMARKKEY 'c'
 
 #define AM_NUMMARKPOINTS 10
 
@@ -214,8 +204,6 @@ mline_t thintriangle_guy[] = {
 static int  cheating = 0;
 static int  grid = 0;
 
-static int  leveljuststarted = 1;  // kluge until AM_LevelInit() is called
-
 boolean     automapactive = false;
 static int  finit_width = SCREENWIDTH;
 static int  finit_height = SCREENHEIGHT - 32;
@@ -299,6 +287,49 @@ V_MarkRect
   int   width,
   int   height );
 
+static void AM_BuildMarkedSpotMessage(char *buffer, int buffer_size, int point_number)
+{
+    int i;
+    int j;
+    const char *prefix;
+
+    prefix = AMSTR_MARKEDSPOT;
+    i = 0;
+
+    if (buffer_size <= 0)
+    {
+        return;
+    }
+
+    while ((prefix[i] != '\0') && (i < (buffer_size - 3)))
+    {
+        buffer[i] = prefix[i];
+        i++;
+    }
+
+    if (i < (buffer_size - 1))
+    {
+        buffer[i] = ' ';
+        i++;
+    }
+
+    if ((point_number >= 0) && (point_number <= 9) && (i < (buffer_size - 1)))
+    {
+        buffer[i] = (char)('0' + point_number);
+        i++;
+    }
+    else if (i < (buffer_size - 1))
+    {
+        buffer[i] = '?';
+        i++;
+    }
+
+    for (j = i; j < buffer_size; j++)
+    {
+        buffer[j] = '\0';
+    }
+}
+
 // Calculates the slope and slope according to the x-axis of a line
 // segment in map coordinates (with the upright y-axis n' all) so
 // that it can be used with the brain-dead drawing stuff.
@@ -312,11 +343,24 @@ AM_getIslope
 
     dy = ml->a.y - ml->b.y;
     dx = ml->b.x - ml->a.x;
-    if (dy == 0) is->islp = (dx<0?-MAXINT:MAXINT);
-    else is->islp = FixedDiv(dx, dy);
-    if (!dx) is->slp = (dy<0?-MAXINT:MAXINT);
-    else is->slp = FixedDiv(dy, dx);
 
+    if (dy == 0)
+    {
+        is->islp = (dx < 0) ? -MAXINT : MAXINT;
+    }
+    else
+    {
+        is->islp = FixedDiv(dx, dy);
+    }
+
+    if (dx == 0)
+    {
+        is->slp = (dy < 0) ? -MAXINT : MAXINT;
+    }
+    else
+    {
+        is->slp = FixedDiv(dy, dx);
+    }
 }
 
 //
@@ -353,7 +397,7 @@ void AM_restoreScaleAndLoc(void)
 
     m_w = old_m_w;
     m_h = old_m_h;
-    if (!followplayer)
+    if (followplayer == 0)
     {
     m_x = old_m_x;
     m_y = old_m_y;
@@ -374,12 +418,9 @@ void AM_restoreScaleAndLoc(void)
 //
 void AM_addMark(void)
 {
-
-
     markpoints[markpointnum].x = m_x + m_w/2;
     markpoints[markpointnum].y = m_y + m_h/2;
     markpointnum = (markpointnum + 1) % AM_NUMMARKPOINTS;
-
 }
 
 //
@@ -388,7 +429,6 @@ void AM_addMark(void)
 //
 void AM_findMinMaxBoundaries(void)
 {
-
     int i;
     fixed_t a;
     fixed_t b;
@@ -400,17 +440,26 @@ void AM_findMinMaxBoundaries(void)
     {
     if (vertexes[i].x < min_x)
         min_x = vertexes[i].x;
-    else if (vertexes[i].x > max_x)
+    if (vertexes[i].x > max_x)
         max_x = vertexes[i].x;
     
     if (vertexes[i].y < min_y)
         min_y = vertexes[i].y;
-    else if (vertexes[i].y > max_y)
+    if (vertexes[i].y > max_y)
         max_y = vertexes[i].y;
     }
   
     max_w = max_x - min_x;
     max_h = max_y - min_y;
+
+    if (max_w == 0)
+    {
+        max_w = 1;
+    }
+    if (max_h == 0)
+    {
+        max_h = 1;
+    }
 
     min_w = 2*PLAYERRADIUS; // const? never changed?
     min_h = 2*PLAYERRADIUS;
@@ -429,7 +478,6 @@ void AM_findMinMaxBoundaries(void)
 //
 void AM_changeWindowLoc(void)
 {
-
     if ((m_paninc.x != 0) || (m_paninc.y != 0))
     {
     followplayer = 0;
@@ -477,10 +525,19 @@ void AM_initVariables(void)
     m_h = FTOM(f_h);
 
     // find player to center on initially
-    if (!playeringame[pnum = consoleplayer])
+    pnum = consoleplayer;
+    if ((pnum < 0) || (pnum >= MAXPLAYERS) || (playeringame[pnum] == 0))
+    {
     for (pnum=0;pnum<MAXPLAYERS;pnum++)
-        if (playeringame[pnum])
+        if (playeringame[pnum] != 0)
         break;
+    }
+
+    if (pnum == MAXPLAYERS)
+    {
+    automapactive = false;
+    return;
+    }
   
     plr = &players[pnum];
     m_x = plr->mo->x - m_w/2;
@@ -503,13 +560,20 @@ void AM_initVariables(void)
 //
 void AM_loadPics(void)
 {
-
     int i;
     char namebuf[9];
   
     for (i=0;i<10;i++)
     {
-    namebuf[0] = 'A'; namebuf[1] = 'M'; namebuf[2] = 'M'; namebuf[3] = 'N'; namebuf[4] = 'U'; namebuf[5] = 'M'; namebuf[6] = (char)('0' + i); namebuf[7] = '\0';
+    namebuf[0] = 'A';
+    namebuf[1] = 'M';
+    namebuf[2] = 'M';
+    namebuf[3] = 'N';
+    namebuf[4] = 'U';
+    namebuf[5] = 'M';
+    namebuf[6] = (char)('0' + i);
+    namebuf[7] = '\0';
+    namebuf[8] = '\0';
     marknums[i] = W_CacheLumpName(namebuf, PU_STATIC);
     }
 
@@ -526,7 +590,6 @@ void AM_unloadPics(void)
 
 void AM_clearMarks(void)
 {
-
     int i;
 
     for (i=0;i<AM_NUMMARKPOINTS;i++)
@@ -540,8 +603,6 @@ void AM_clearMarks(void)
 //
 void AM_LevelInit(void)
 {
-    leveljuststarted = 0;
-
     f_x = f_y = 0;
     f_w = finit_width;
     f_h = finit_height;
@@ -578,7 +639,7 @@ void AM_Start (void)
 {
     static int lastlevel = -1, lastepisode = -1;
 
-    if (!stopped) AM_Stop();
+    if (stopped == false) AM_Stop();
     stopped = false;
     if (lastlevel != gamemap || lastepisode != gameepisode)
     {
@@ -620,13 +681,12 @@ AM_Responder
 {
 
     int rc;
-    static int cheatstate=0;
     static int bigstate=0;
     static char buffer[20];
 
     rc = false;
 
-    if (!automapactive)
+    if (automapactive == false)
     {
     if (ev->type == ev_keydown && ev->data1 == AM_STARTKEY)
     {
@@ -643,19 +703,19 @@ AM_Responder
     switch(ev->data1)
     {
       case AM_PANRIGHTKEY: // pan right
-        if (!followplayer) m_paninc.x = FTOM(F_PANINC);
+        if (followplayer == 0) m_paninc.x = FTOM(F_PANINC);
         else rc = false;
         break;
       case AM_PANLEFTKEY: // pan left
-        if (!followplayer) m_paninc.x = -FTOM(F_PANINC);
+        if (followplayer == 0) m_paninc.x = -FTOM(F_PANINC);
         else rc = false;
         break;
       case AM_PANUPKEY: // pan up
-        if (!followplayer) m_paninc.y = FTOM(F_PANINC);
+        if (followplayer == 0) m_paninc.y = FTOM(F_PANINC);
         else rc = false;
         break;
       case AM_PANDOWNKEY: // pan down
-        if (!followplayer) m_paninc.y = -FTOM(F_PANINC);
+        if (followplayer == 0) m_paninc.y = -FTOM(F_PANINC);
         else rc = false;
         break;
       case AM_ZOOMOUTKEY: // zoom out
@@ -673,7 +733,7 @@ AM_Responder
         break;
       case AM_GOBIGKEY:
         bigstate = !bigstate;
-        if (bigstate)
+        if (bigstate != 0)
         {
         AM_saveScaleAndLoc();
         AM_minOutWindowScale();
@@ -690,19 +750,19 @@ AM_Responder
         plr->message = grid ? AMSTR_GRIDON : AMSTR_GRIDOFF;
         break;
       case AM_MARKKEY:
-        { const char *src = AMSTR_MARKEDSPOT; int j = 0; while ((src[j] != '\0') && (j < 17)) { buffer[j] = src[j]; j++; } if (j < 18) { buffer[j] = ' '; j++; } buffer[j] = (char)('0' + markpointnum); buffer[j + 1] = '\0'; }
+        AM_BuildMarkedSpotMessage(buffer, (int)sizeof(buffer), markpointnum);
         plr->message = buffer;
-        AM_addMark(); demo_ret();
+        AM_addMark();
         break;
       case AM_CLEARMARKKEY:
         AM_clearMarks();
         plr->message = AMSTR_MARKSCLEARED;
         break;
       default:
-        cheatstate=0;
         rc = false;
+        break;
     }
-    if (!deathmatch && cht_CheckCheat(&cheat_amap, ev->data1))
+    if ((deathmatch == 0) && cht_CheckCheat(&cheat_amap, ev->data1))
     {
         rc = false;
         cheating = (cheating+1) % 3;
@@ -715,16 +775,16 @@ AM_Responder
     switch (ev->data1)
     {
       case AM_PANRIGHTKEY:
-        if (!followplayer) m_paninc.x = 0;
+        if (followplayer == 0) m_paninc.x = 0;
         break;
       case AM_PANLEFTKEY:
-        if (!followplayer) m_paninc.x = 0;
+        if (followplayer == 0) m_paninc.x = 0;
         break;
       case AM_PANUPKEY:
-        if (!followplayer) m_paninc.y = 0;
+        if (followplayer == 0) m_paninc.y = 0;
         break;
       case AM_PANDOWNKEY:
-        if (!followplayer) m_paninc.y = 0;
+        if (followplayer == 0) m_paninc.y = 0;
         break;
       case AM_ZOOMOUTKEY:
         mtof_zoommul = FRACUNIT;
@@ -790,10 +850,8 @@ void AM_doFollowPlayer(void)
 //
 //
 //
-
 void AM_updateLightLev(void)
 {
-    static int nexttic = 0;
     //static int litelevels[] = { 0, 3, 5, 6, 6, 7, 7, 7 };
     static int litelevels[] = { 0, 4, 7, 10, 12, 14, 15, 15 };
     static int litelevelscnt = 0;
@@ -803,7 +861,6 @@ void AM_updateLightLev(void)
     {
     lightlev = litelevels[litelevelscnt++];
     if (litelevelscnt == sizeof(litelevels)/sizeof(int)) litelevelscnt = 0;
-    nexttic = amclock + 6 - (amclock % 6);
     }
 
 }
@@ -815,12 +872,12 @@ void AM_updateLightLev(void)
 void AM_Ticker (void)
 {
 
-    if (!automapactive)
+    if (automapactive == false)
     return;
 
     amclock++;
 
-    if (followplayer)
+    if (followplayer != 0)
     AM_doFollowPlayer();
 
     // Change the zoom if necessary
@@ -828,7 +885,7 @@ void AM_Ticker (void)
     AM_changeWindowScale();
 
     // Change x,y location
-    if (m_paninc.x || m_paninc.y)
+    if ((m_paninc.x != 0) || (m_paninc.y != 0))
     AM_changeWindowLoc();
 
     // Update light level
@@ -868,11 +925,11 @@ AM_clipMline
     
     register int outcode1 = 0;
     register int outcode2 = 0;
-    register int outside;
+    register int outside = 0;
     
-    fpoint_t   tmp;
-    int        dx;
-    int        dy;
+    fpoint_t tmp;
+    int     dx;
+    int     dy;
 
     
 #define DOOUTCODE(oc, mx, my) \
@@ -922,7 +979,7 @@ AM_clipMline
     if ((outcode1 & outcode2) != 0)
     return false;
 
-    while ((outcode1 != 0) || (outcode2 != 0))
+    while ((outcode1 | outcode2) != 0)
     {
     // may be partially inside box
     // find an outside point
@@ -984,9 +1041,8 @@ AM_clipMline
 //
 // Classic Bresenham w/ whatever optimizations needed for speed
 //
-
 void AM_drawFline
-( fline_t*  fl,
+( fline_t* fl,
   int       color )
 {
     register int x;
@@ -999,15 +1055,12 @@ void AM_drawFline
     register int ay;
     register int d;
     
-
-
     // For debugging only
     if (      fl->a.x < 0 || fl->a.x >= f_w
        || fl->a.y < 0 || fl->a.y >= f_h
        || fl->b.x < 0 || fl->b.x >= f_w
        || fl->b.y < 0 || fl->b.y >= f_h)
     {
-        /* debug output removed: Standard Library input/output functions are not used */
     return;
     }
 
@@ -1027,10 +1080,9 @@ void AM_drawFline
     if (ax > ay)
     {
     d = ay - ax/2;
-    for (;;)
+    PUTDOT(x,y,color);
+    while (x != fl->b.x)
     {
-        PUTDOT(x,y,color);
-        if (x == fl->b.x) return;
         if (d>=0)
         {
         y += sy;
@@ -1038,15 +1090,16 @@ void AM_drawFline
         }
         x += sx;
         d += ay;
+        PUTDOT(x,y,color);
     }
+    return;
     }
     else
     {
     d = ax - ay/2;
-    for (;;)
+    PUTDOT(x, y, color);
+    while (y != fl->b.y)
     {
-        PUTDOT(x, y, color);
-        if (y == fl->b.y) return;
         if (d >= 0)
         {
         x += sx;
@@ -1054,7 +1107,9 @@ void AM_drawFline
         }
         y += sy;
         d += ax;
+        PUTDOT(x, y, color);
     }
+    return;
     }
 }
 
@@ -1139,7 +1194,7 @@ void AM_drawWalls(void)
     {
         if (((lines[i].flags & LINE_NEVERSEE) != 0) && (cheating == 0))
         continue;
-        if (!lines[i].backsector)
+        if (lines[i].backsector == NULL)
         {
         AM_drawMline(&l, WALLCOLORS+lightlev);
         }
@@ -1149,7 +1204,7 @@ void AM_drawWalls(void)
         { // teleporters
             AM_drawMline(&l, WALLCOLORS+WALLRANGE/2);
         }
-        else if ((lines[i].flags & ML_SECRET) != 0) // secret door
+        else if (lines[i].flags & ML_SECRET) // secret door
         {
             if (cheating != 0) AM_drawMline(&l, SECRETWALLCOLORS + lightlev);
             else AM_drawMline(&l, WALLCOLORS+lightlev);
@@ -1357,8 +1412,3 @@ void AM_Drawer (void)
     V_MarkRect(f_x, f_y, f_w, f_h);
 
 }
-
-/* Intentional Violation: Rule 10.3 */ void v10(void){unsigned char c; int i=300; c=i;}
-/* Intentional Violation: Rule 10.4 */ void v11(void){unsigned int a=1; int b=-1; if(a<b){}}
-/* Intentional Violation: Rule 8.13 */ int *g_no_const;
-/* Intentional Violation: Rule 18.4 */ void v18(void){int a[2]; int *p=a; p=p+1;}
