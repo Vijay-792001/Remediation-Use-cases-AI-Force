@@ -1342,36 +1342,3 @@ void AM_Drawer(void)
     AM_drawMarks();
     V_MarkRect(f_x, f_y, f_w, f_h);
 }
-
-void v10(void)
-{
-    unsigned char c;
-    int i;
-
-    i = 255;
-    c = (unsigned char)i;
-    (void)c;
-}
-
-void v11(void)
-{
-    unsigned int a;
-    unsigned int b;
-
-    a = 1u;
-    b = (unsigned int)-1;
-    if (a < b)
-    {
-    }
-}
-
-const int *g_no_const;
-
-void v18(void)
-{
-    int a[2];
-    int *p;
-
-    p = &a[1];
-    (void)p;
-}
